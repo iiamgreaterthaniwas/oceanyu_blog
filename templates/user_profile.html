@@ -9,47 +9,49 @@
 </div>
 
 <div class="user-profile-page">
-    <!-- 用户信息卡片 - 保持原有样式，因为这是个人页特有的 -->
-    <div class="user-info-card">
-        <div class="user-avatar-large">
+    <!-- 用户信息卡片 - 修改为与主页相同的透明玻璃效果 -->
+    <div class="user-info-card profile-card"
+         {% if current_user and current_user.id == profile_user.id %}
+         onclick="window.location.href='{{ url_for('edit_profile') }}'"
+         title="点击编辑个人资料"
+         style="cursor:pointer;"
+         {% endif %}>
+        <div class="avatar">
             {% if profile_user.avatar_path %}
-                <img src="/{{ profile_user.avatar_path }}" alt="{{ profile_user.username }}的头像">
+                <img src="/{{ profile_user.avatar_path }}" alt="{{ profile_user.username }}的头像" />
             {% else %}
-                <span class="avatar-placeholder">{{ profile_user.username[0] }}</span>
+                <span style="color:white; font-size:2.5rem; font-weight:bold;">{{ profile_user.username[0] }}</span>
             {% endif %}
         </div>
-
-        <div class="user-detail">
-            <div class="user-name-row">
-                <h2 class="user-display-name">{{ profile_user.username }}</h2>
-                {% if profile_user.role == 'admin' %}
-                <span class="role-badge admin-badge">👑 管理员</span>
-                {% else %}
-                <span class="role-badge user-badge">🌸 普通用户</span>
-                {% endif %}
-            </div>
-            <p class="user-bio-text">{{ profile_user.bio or '这个人很神秘，什么都没有留下~' }}</p>
-            {% if profile_user.email %}
-            <p class="user-email">📧 {{ profile_user.email }}</p>
+        <h2 class="profile-name">
+            {{ profile_user.username }}
+            {% if profile_user.role == 'admin' %}
+            <img src="/static/img/dav.png" alt="大V" style="height: 1.2em; width: auto; vertical-align: middle; margin-left: 1px;" onerror="this.style.display='none'">
             {% endif %}
-            <p class="user-join-date">📅 加入于 {{ profile_user.created_at.strftime('%Y年%m月%d日') if profile_user.created_at else '未知' }}</p>
+        </h2>
+        <p class="profile-bio">{{ profile_user.bio or '这个人很神秘，什么都没有留下~' }}</p>
 
-            <div class="user-stats">
-                <div class="stat-item">
-                    <span class="stat-num">{{ posts|length }}</span>
-                    <span class="stat-label">篇文章</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-num">{{ profile_user.comments|length }}</span>
-                    <span class="stat-label">条评论</span>
-                </div>
+        <div class="user-stats" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.3);">
+            <div class="stat-item">
+                <span class="stat-num">{{ posts|length }}</span>
+                <span class="stat-label">篇文章</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-num">{{ profile_user.comments|length }}</span>
+                <span class="stat-label">条评论</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-num">📧</span>
+                <span class="stat-label">{{ profile_user.email if profile_user.email else '未公开' }}</span>
             </div>
         </div>
+
+        <p style="font-size:0.75rem; color:#bbb; margin-top:0.5rem;">
+            📅 加入于 {{ profile_user.created_at.strftime('%Y年%m月%d日') if profile_user.created_at else '未知' }}
+        </p>
 
         {% if current_user and current_user.id == profile_user.id %}
-        <div class="profile-edit-btn-wrap">
-            <a href="{{ url_for('edit_profile') }}" class="edit-profile-btn">✏️ 编辑资料</a>
-        </div>
+        <p style="font-size:0.75rem; color:#bbb; margin-top:0.5rem;">点击编辑个人资料</p>
         {% endif %}
     </div>
 
@@ -233,154 +235,110 @@
     padding: 1rem 0;
 }
 
-/* 用户信息卡片 - 保持原有样式 */
+/* 个人信息卡片 - 完全仿照主页的透明玻璃效果 */
 .user-info-card {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 24px;
-    padding: 2.5rem;
-    margin-bottom: 2.5rem;
-    box-shadow: 0 10px 40px rgba(253, 194, 204, 0.25), 0 0 0 1px rgba(255,255,255,0.6);
-    display: flex;
-    align-items: flex-start;
-    gap: 2rem;
     position: relative;
-    animation: fadeInUp 0.5s ease;
+    background: transparent;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    transform: translateY(0);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+    opacity: 0;
+    animation: cardFadeIn 0.8s ease forwards;
+    transform: translate3d(0, 0, 0);
+    will-change: transform, backdrop-filter;
 }
 
-.user-avatar-large {
+.user-info-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: inherit;
+    transition: backdrop-filter 0.3s ease, background 0.3s ease;
+}
+
+.user-info-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.85),
+                inset 0 0 4px rgba(255, 255, 255, 0.85);
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.user-info-card > * {
+    position: relative;
+    z-index: 2;
+}
+
+.user-info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* 头像样式 - 与主页一致 */
+.user-info-card .avatar {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-    background: linear-gradient(135deg, #FDC2CC, #FFF1F3);
+    margin: 0 auto 1rem;
+    background: linear-gradient(135deg,#FDC2CC 0%, #FFF1F3 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 30px rgba(253,194,204,0.4);
+    font-size: 3rem;
+    color: white;
+    overflow: hidden;
 }
 
-.user-avatar-large img {
+.user-info-card .avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 50%;
 }
 
-.avatar-placeholder {
-    font-size: 3rem;
-    color: white;
-    font-weight: bold;
-}
-
-.user-detail {
-    flex: 1;
-}
-
-.user-name-row {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
+.user-info-card .profile-name {
+    font-size: 2rem;
     margin-bottom: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.user-display-name {
-    font-size: 1.8rem;
     color: #333;
-    margin: 0;
 }
 
-.role-badge {
-    padding: 0.2rem 0.7rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.admin-badge {
-    background: linear-gradient(135deg, #ffd700, #ffb800);
-    color: #7a5500;
-}
-
-.user-badge {
-    background: linear-gradient(135deg, #FDC2CC, #FFF1F3);
-    color: #c07080;
-}
-
-.user-bio-text {
+.user-info-card .profile-bio {
     color: #666;
-    font-size: 1.05rem;
-    margin-bottom: 0.5rem;
-    line-height: 1.6;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
 }
 
-.user-email, .user-join-date {
-    color: #999;
-    font-size: 0.88rem;
-    margin-bottom: 0.3rem;
-}
-
-.user-stats {
+.user-info-card .user-stats {
     display: flex;
+    justify-content: center;
     gap: 2rem;
-    margin-top: 1rem;
 }
 
-.stat-item {
+.user-info-card .stat-item {
     text-align: center;
 }
 
-.stat-num {
+.user-info-card .stat-num {
     display: block;
     font-size: 1.6rem;
     font-weight: 700;
     color: #FDC2CC;
 }
 
-.stat-label {
+.user-info-card .stat-label {
     font-size: 0.8rem;
-    color: #999;
-}
-
-.profile-edit-btn-wrap {
-    position: absolute;
-    top: 2rem;
-    right: 2rem;
-}
-
-.edit-profile-btn {
-    background: linear-gradient(135deg, #FDC2CC, #ffb3c1);
-    color: white;
-    text-decoration: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    display: inline-block;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.edit-profile-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(253,194,204,0.5);
-}
-
-.section-title {
-    font-size: 1.3rem;
-    color: #555;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid rgba(253, 194, 204, 0.3);
-}
-
-.no-posts {
-    text-align: center;
-    padding: 3rem;
-    background: rgba(255,255,255,0.6);
-    border-radius: 16px;
     color: #999;
 }
 
@@ -521,42 +479,52 @@
     transform: scale(1.05);
 }
 
+.section-title {
+    font-size: 1.3rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(253, 194, 204, 0.3);
+}
+
+.no-posts {
+    text-align: center;
+    padding: 3rem;
+    background: rgba(255,255,255,0.6);
+    border-radius: 16px;
+    color: #999;
+}
+
 @keyframes cardFadeIn {
     0% { opacity: 0; transform: translateY(20px) translate3d(0, 0, 0); }
     50% { opacity: 0.5; }
     100% { opacity: 1; transform: translateY(0) translate3d(0, 0, 0); }
 }
 
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
 /* 移动端响应式 */
 @media (max-width: 768px) {
     .user-info-card {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 1.8rem 1.5rem;
+        padding: 1.5rem;
     }
 
-    .profile-edit-btn-wrap {
-        position: static;
-        width: 100%;
-        text-align: center;
-        margin-top: 1rem;
+    .user-info-card .avatar {
+        width: 100px;
+        height: 100px;
     }
 
-    .edit-profile-btn {
-        width: auto;
+    .user-info-card .profile-name {
+        font-size: 1.6rem;
     }
 
-    .user-name-row {
-        justify-content: center;
+    .user-info-card .user-stats {
+        gap: 1rem;
     }
 
-    .user-stats {
-        justify-content: center;
-    }
-
-    .user-email, .user-join-date {
-        text-align: center;
+    .user-info-card .stat-num {
+        font-size: 1.3rem;
     }
 
     .post-card {
@@ -608,7 +576,7 @@
     }
 }
 
-/* 以下是从index.html复制的模态框样式，保持完全一致 */
+/* 模态框样式 - 与index.html保持一致 */
 .modal {
     display: none;
     position: fixed;
@@ -618,6 +586,7 @@
     background-color: rgba(0,0,0,0.5);
     animation: fadeIn 0.2s ease;
 }
+
 .modal-content {
     background: white;
     margin: 3% auto;
@@ -630,6 +599,7 @@
     animation: slideIn 0.3s ease;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -642,6 +612,7 @@
     z-index: 10;
     border-radius: 16px 16px 0 0;
 }
+
 .modal-header h3 { margin: 0; font-size: 1.2rem; color: white; }
 .close { font-size: 1.8rem; cursor: pointer; color: white; line-height: 1; opacity: 0.8; }
 .close:hover { color: white; opacity: 1; }
@@ -738,8 +709,10 @@
 .message-toast.error { background: #ff6b6b; }
 .message-toast.warning { background: #ffa726; }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@supports not (backdrop-filter: blur(10px)) {
+    .user-info-card { background: rgba(255, 255, 255, 0.4); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
+    .user-info-card::before { display: none; }
+}
 </style>
 
 <script>

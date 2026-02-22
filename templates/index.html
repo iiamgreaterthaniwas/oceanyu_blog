@@ -35,7 +35,7 @@
             {% if current_user %}
                 {{ current_user.username }}
                 {% if current_user.is_admin %}
-                <span style="font-size:0.6em; background:linear-gradient(135deg,#ffd700,#ffb800); color:#7a5500; padding:2px 10px; border-radius:20px; vertical-align:middle; margin-left:8px;">👑 管理员</span>
+                <img src="/static/img/dav.png" alt="大V" style="height: 1.2em; width: auto; vertical-align: middle; margin-left: 1px;" onerror="this.style.display='none'">
                 {% endif %}
             {% endif %}
         </h2>
@@ -47,7 +47,6 @@
             {% endif %}
         </p>
         {% if current_user %}
-        <p style="font-size:0.75rem; color:#bbb; margin-top:0.5rem;">点击查看个人主页</p>
         {% endif %}
     </div>
 
