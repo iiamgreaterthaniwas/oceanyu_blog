@@ -315,7 +315,22 @@ def add_post():
 
     return render_template('add_post.html', current_user=current_user)
 
-
+@app.route('/get_user_info/<int:user_id>')
+def get_user_info(user_id):
+    """获取用户信息（头像和管理员状态）"""
+    try:
+        user = User.query.get_or_404(user_id)
+        return jsonify({
+            'success': True,
+            'avatar_path': user.avatar_path,
+            'is_admin': user.role == 'admin',
+            'username': user.username
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        })
 @app.route('/api/posts')
 def api_posts():
     page = request.args.get('page', 1, type=int)

@@ -729,7 +729,7 @@
     /* 管理员图标优化 */
     .comment-author img[alt="大V"] {
         height: 1.2em !important;  /* 稍小的管理员图标 */
-        top: -1px !important;
+        top: -2px !important;
     }
     
     /* 评论内容优化 */
@@ -1496,17 +1496,6 @@
         min-width: 55px;
     }
 }
-@media (max-width: 768px) {
-        .admin-icon {
-            top: -10px !important;  /* 覆盖原有的top值 */
-        }
-    }
-    
-@media (max-width: 480px) {
-    .admin-icon {
-        top: -10px !important;
-    }
-}
 @supports not (backdrop-filter: blur(10px)) {
     .profile-card, .post-card { background: rgba(255, 255, 255, 0.4); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
     .profile-card::before, .post-card::before { display: none; }
@@ -1558,20 +1547,64 @@
             alert('无法打开文章详情，请刷新页面重试');
         }
     }
-
+    function fetchAuthorInfo(authorId, authorName, authorInfoElement) {
+    fetch(`/get_user_info/${authorId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // 创建头像HTML
+                let avatarHtml = '';
+                if (data.avatar_path) {
+                    avatarHtml = `<div class="comment-avatar" style="margin-right: 8px;"><img src="/${data.avatar_path}" alt="头像" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;"></div>`;
+                } else {
+                    avatarHtml = `<div class="comment-avatar" style="margin-right: 8px;"><span class="comment-avatar-text" style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #FDC2CC, #FFF1F3); border-radius: 50%; color: white; font-weight: bold;">${authorName[0]}</span></div>`;
+                }
+                
+                // 管理员图标
+                const adminIconHtml = data.is_admin 
+                    ? `<img src="/static/img/dav.png" alt="大V" style="height: 1.2em; width: auto; vertical-align: middle; margin-left: 4px; display: inline-block;" onerror="this.style.display='none'">`
+                    : '';
+                
+                // 更新authorInfo内容
+                authorInfoElement.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+                        ${avatarHtml}
+                        <a href="/user/${authorId}" style="color:#FDC2CC; text-decoration:none; font-size:0.9rem; display: flex; align-items: center;">
+                            ${authorName}${adminIconHtml}
+                        </a>
+                    </div>
+                `;
+                authorInfoElement.style.display = 'flex';
+                authorInfoElement.style.alignItems = 'center';
+                authorInfoElement.style.gap = '6px';
+            } else {
+                // 降级显示：只显示名字
+                authorInfoElement.innerHTML = `<a href="/user/${authorId}" style="color:#FDC2CC; text-decoration:none; font-size:0.9rem;">👤 ${authorName}</a>`;
+                authorInfoElement.style.display = 'flex';
+                authorInfoElement.style.alignItems = 'center';
+                authorInfoElement.style.gap = '6px';
+            }
+        })
+        .catch(err => {
+            console.error('获取作者信息失败:', err);
+            // 降级显示
+            authorInfoElement.innerHTML = `<a href="/user/${authorId}" style="color:#FDC2CC; text-decoration:none; font-size:0.9rem;">👤 ${authorName}</a>`;
+            authorInfoElement.style.display = 'flex';
+            authorInfoElement.style.alignItems = 'center';
+            authorInfoElement.style.gap = '6px';
+        });
+}
     function openPostModal(postId, title, content, imagePaths, tags, date, author, authorId) {
         document.getElementById('modalTitle').textContent = title;
         document.getElementById('modalContent').textContent = content;
         document.getElementById('modalDate').innerHTML = '<img src="/static/img/calendar.png" alt="日历" style="width:1.2em;height:1.2em;vertical-align:middle;" onerror="this.style.display=\'none\'"> ' + date;
         
-        // 显示作者信息
+        // 显示作者信息 - 修改为包含头像和管理员图标
         const authorInfo = document.getElementById('modalAuthorInfo');
         if (author && authorId) {
-            document.getElementById('modalAuthorLink').textContent = '👤 ' + author;
-            document.getElementById('modalAuthorLink').href = '/user/' + authorId;
-            authorInfo.style.display = 'flex'; 
-            authorInfo.style.alignItems = 'center'; 
-            authorInfo.style.gap = '6px';
+            // 获取作者头像（需要从后端获取，这里先尝试从已有的数据中获取）
+            // 由于当前数据中没有头像信息，我们需要异步获取
+            fetchAuthorInfo(authorId, author, authorInfo);
         } else { 
             authorInfo.style.display = 'none'; 
         }
