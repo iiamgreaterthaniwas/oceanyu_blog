@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="add-post-container">
+    <h2>✏️ 编辑文章</h2>
+
+    <form method="POST" enctype="multipart/form-data" class="post-form">
+        <div class="form-group">
+            <label for="title">📝 标题</label>
+            <input type="text" id="title" name="title" value="{{ post.title }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="content">📄 内容</label>
+            <textarea id="content" name="content" rows="8" required>{{ post.content }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="tags">🏷️ 标签 (用逗号分隔)</label>
+            <input type="text" id="tags" name="tags" value="{{ post.tags }}" placeholder="例如: 生活,旅行,美食">
+        </div>
+
+        <!-- 现有图片管理 -->
+        {% if existing_images %}
+        <div class="form-group">
+            <label>🖼️ 现有图片 (取消勾选即可删除)</label>
+            <div id="existingImages" class="existing-images-container">
+                {% for image_path in existing_images %}
+                <div class="existing-image-item">
+                    <img src="/{{ image_path }}" alt="现有图片">
+                    <div class="image-checkbox">
+                        <input type="checkbox" name="keep_images" value="{{ loop.index0 }}" checked>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="images">📷 添加新图片</label>
+            <input type="file" id="images" name="images" multiple accept="image/*" onchange="previewImages(this)">
+            <div class="upload-hint">支持 JPG, JPEG, PNG, GIF 格式</div>
+        
+            <!-- 新图片预览区域 -->
+            <div id="imagePreview" class="image-preview-container">
+                <!-- 预览图片将显示在这里 -->
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">💾 更新文章</button>
+            <a href="{{ url_for('index') }}" class="btn-secondary">❌ 取消</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .add-post-container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .add-post-container h2 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 30px;
+        font-size: 28px;
+    }
+
+    .post-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #555;
+        font-size: 16px;
+    }
+
+    .form-group input[type="text"],
+    .form-group textarea {
+        padding: 12px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s ease;
+        font-family: inherit;
+    }
+
+    .form-group input[type="text"]:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group input[type="file"] {
+        padding: 10px;
+        border: 2px dashed #e1e5e9;
+        border-radius: 8px;
+        background: #f8f9fa;
+        cursor: pointer;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-group input[type="file"]:hover {
+        border-color: #667eea;
+        background: #f0f2ff;
+    }
+
+    .upload-hint {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+
+    /* 现有图片样式 */
+    .existing-images-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-top: 10px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .existing-image-item {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #e1e5e9;
+        transition: border-color 0.3s ease;
+    }
+
+    .existing-image-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .image-checkbox {
+        position: absolute;
+        bottom: 5px;
+        left: 5px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 4px 8px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+    }
+
+    .image-checkbox input[type="checkbox"] {
+        margin: 0;
+    }
+
+    .existing-image-item:has(input[type="checkbox"]:not(:checked)) {
+        border-color: #dc3545;
+        opacity: 0.6;
+    }
+
+    .existing-image-item:has(input[type="checkbox"]:not(:checked))::after {
+        content: "将被删除";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(220, 53, 69, 0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    /* 新图片预览样式 */
+    .image-preview-container {
+        margin-top: 15px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .preview-item {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #e1e5e9;
+    }
+
+    .preview-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .preview-item .remove-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(255, 0, 0, 0.8);
+        color: white;
+        border: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s ease;
+    }
+
+    .preview-item .remove-btn:hover {
+        background: rgba(255, 0, 0, 1);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: inline-block;
+    }
+
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .add-post-container {
+            padding: 20px;
+            margin: 10px;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea {
+            font-size: 16px; /* 防止iOS缩放 */
+        }
+
+        .existing-images-container,
+        .image-preview-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            text-align: center;
+        }
+
+        body {
+            font-size: 16px;
+        }
+
+        h2 {
+            font-size: 20px;
+        }
+
+        h3 {
+            font-size: 18px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .existing-images-container,
+        .image-preview-container {
+            grid-template-columns: 1fr;
+        }
+
+        .add-post-container h2 {
+            font-size: 24px;
+        }
+    }
+</style>
+
+<script>
+    let selectedFiles = [];
+
+    function previewImages(input) {
+        const files = Array.from(input.files);
+        const previewContainer = document.getElementById('imagePreview');
+
+        selectedFiles = files;
+        previewContainer.innerHTML = '';
+
+        selectedFiles.forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    previewItem.innerHTML = `
+                        <img src="${e.target.result}" alt="预览图片 ${index + 1}">
+                        <button type="button" class="remove-btn" onclick="removeImage(${index})" title="删除图片">×</button>
+                    `;
+                    previewContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+
+    function removeImage(index) {
+        selectedFiles.splice(index, 1);
+        updateFileInput();
+        refreshPreview();
+    }
+
+    function updateFileInput() {
+        const input = document.getElementById('images');
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        input.files = dt.files;
+    }
+
+    function refreshPreview() {
+        const previewContainer = document.getElementById('imagePreview');
+        previewContainer.innerHTML = '';
+
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                previewItem.innerHTML = `
+                    <img src="${e.target.result}" alt="预览图片 ${index + 1}">
+                    <button type="button" class="remove-btn" onclick="removeImage(${index})" title="删除图片">×</button>
+                `;
+                previewContainer.appendChild(previewItem);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // 移除现有图片复选框变化监听器中的总数检查
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('input[name="keep_images"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // 不再检查图片总数
+            });
+        });
+    });
+</script>
+{% endblock %}

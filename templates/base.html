@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>{% block title %}发疯博客{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="/static/img/oceanyu.png" type="image/png">
+</head>
+<body>
+    <div id="home">
+        <nav class="navbar">
+            <div class="container">
+                <div class="nav-content">
+                    <a href="{{ url_for('index') }}" class="logo">发疯博客</a>
+
+                    <!-- 搜索功能 -->
+                    <div class="nav-search">
+                        <form method="GET" action="{{ url_for('index') }}" class="nav-search-form">
+                            <div class="nav-search-group">
+                                <!-- 第一行：搜索输入框和搜索按钮 -->
+                                <div class="search-row-1">
+                                    <input type="text" name="search_title"
+                                           value="{{ search_title or '' }}"
+                                           placeholder="搜索标题..."
+                                           class="nav-search-input">
+                                    <!-- PC端：日期选择框紧跟搜索框 -->
+                                    <input type="date" name="search_date"
+                                           value="{{ search_date or '' }}"
+                                           class="nav-search-date">
+                                    <button type="submit" class="nav-search-btn">          <img src="/static/img/search.png" alt="搜索" style="width: 1em; height: 1em; vertical-align: middle;"></button>
+                                    {% if search_title or search_date %}
+                                    <a href="{{ url_for('index') }}" class="nav-clear-btn" title="清除搜索">          <img src="/static/img/clear.png" alt="清空搜素哦" style="width: 1em; height: 1em; vertical-align: middle;"></a>
+                                    {% endif %}
+                                </div>
+
+                                <!-- 第二行：日期选择和添加按钮 -->
+                                <div class="search-row-2">
+                                    <input type="date" name="search_date"
+                                           value="{{ search_date or '' }}"
+                                           class="nav-search-date">
+                                    <a href="{{ url_for('add_post') }}" class="mobile-add-post-btn">添加文章</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <ul class="nav-links">
+                        <li><a href="{{ url_for('add_post') }}" class="add-post-btn">添加文章</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+<main class="main-content">
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" id="flash-message">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+</main>
+
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2025 OceanYu. 版权所有 | OceanYu的发疯博客</p>
+                <p><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">冀ICP备2025117480号-1</a></p>
+            </div>
+        </footer>
+    </div>
+
+    <style>
+        /* 导航栏搜索样式 */
+        .nav-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .nav-search {
+            flex: 1;
+            max-width: 500px;
+        }
+
+        .nav-search-form {
+            width: 100%;
+        }
+        .footer, .footer a {
+            color: black;
+        }
+        .footer a {
+            text-decoration: none;
+        }
+        .nav-search-group {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 5px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+
+        /* PC端：第一行包含所有搜索元素 */
+        .search-row-1 {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 5px;
+        }
+
+        /* PC端：第二行默认隐藏 */
+        .search-row-2 {
+            display: none;
+        }
+
+        .nav-search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 8px 15px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .nav-search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .nav-search-date {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 8px 10px;
+            font-size: 14px;
+            outline: none;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 140px;
+        }
+
+        .nav-search-date::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.7;
+        }
+    .alert {
+        transition: opacity 0.5s ease;
+        opacity: 1;
+    }
+        .nav-search-btn, .nav-clear-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .nav-search-btn:hover, .nav-clear-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .nav-clear-btn {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .logo {
+            flex-shrink: 0;
+        }
+
+        .nav-links {
+            flex-shrink: 0;
+        }
+
+        /* 移动端添加文章按钮 - 默认隐藏 */
+        .mobile-add-post-btn {
+            display: none;
+        }
+
+        /* 移动端样式 */
+        @media (max-width: 768px) {
+            .nav-content {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+    .profile-name img {
+        margin-left: -0.5em;  /* 向左移动，减少间距 */
+        margin-right: -0.5em; /* 向右移动，减少间距 */
+    }
+            .main-content {
+                margin-top: 190px; /* 根据导航栏实际高度调整 */
+                padding: 20px 0;
+            }
+
+            .nav-search {
+                order: 2;
+                max-width: 100%;
+            }
+
+            /* 隐藏桌面端的添加文章按钮 */
+            .nav-links {
+                display: none;
+            }
+
+            .logo {
+                order: 1;
+                text-align: center;
+                margin-bottom: 10px;
+            }
+
+            /* 移动端：修改搜索组布局为两行 */
+            .nav-search-group {
+                display: block;
+                padding: 15px;
+                background: rgba(255, 255, 255, 0.1); /* 保持外层半透明 */
+                border-radius: 25px;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            /* 移动端：第一行重新布局 */
+            .search-row-1 {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+
+            /* 移动端：显示第二行 */
+            .search-row-2 {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            /* 移动端第一行：隐藏日期选择框 */
+            .search-row-1 .nav-search-date {
+                display: none;
+            }
+
+            /* 移动端第二行：显示日期选择框 */
+            .search-row-2 .nav-search-date {
+                display: block;
+            }
+
+            .nav-search-input {
+                flex: 1;
+                padding: 12px 15px;
+                font-size: 16px;
+                border-radius: 25px;
+                background: transparent; /* 输入框本身透明 */
+                border: none; /* 去掉内部边框 */
+                margin: 0;
+                color: white;
+            }
+            .nav-search-btn,
+            .nav-clear-btn {
+                padding: 12px 15px;
+                font-size: 16px;
+                margin: 0;
+                flex-shrink: 0;
+            }
+
+            .nav-search-date {
+                flex: 1;
+                padding: 12px 15px;
+                font-size: 16px;
+                border-radius: 25px;
+                background: rgba(255, 255, 255, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                margin: 0;
+                min-width: auto;
+                border-left: none;
+            }
+
+            /* 显示移动端添加文章按钮，并设置样式与PC端一致 */
+            .mobile-add-post-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                text-decoration: none;
+                padding: 12px 20px;
+                border-radius: 25px;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+                flex-shrink: 0;
+                margin: 0;
+            }
+
+            .mobile-add-post-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: translateY(-2px);
+            }
+
+            body {
+                font-size: 16px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            h3 {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 10px 0;
+            }
+
+            .nav-search-group {
+                padding: 12px;
+            }
+
+            .nav-search-input,
+            .nav-search-date {
+                font-size: 16px;
+                padding: 10px 12px;
+            }
+
+            .mobile-add-post-btn {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessage = document.getElementById('flash-message');
+        if (flashMessage) {
+            setTimeout(function() {
+                flashMessage.style.opacity = '0';
+                setTimeout(function() {
+                    flashMessage.style.display = 'none';
+                }, 500); // 淡出动画完成后移除
+            }, 3000); // 3秒后开始淡出
+        }
+    });
+    // 同步两个日期输入框的值
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInputs = document.querySelectorAll('input[name="search_date"]');
+
+        // 当任一日期输入框的值变化时，同步到另一个
+        dateInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                dateInputs.forEach(otherInput => {
+                    if (otherInput !== this) {
+                        otherInput.value = this.value;
+                    }
+                });
+            });
+        });
+
+        // 初始同步（如果有值）
+        if (dateInputs.length > 0 && dateInputs[0].value) {
+            dateInputs.forEach(input => {
+                input.value = dateInputs[0].value;
+            });
+        }
+    });
+</script>
+</body>
+</html>

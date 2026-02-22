@@ -1,0 +1,480 @@
+.profile-card > *,
+.post-card > * {
+    position: relative;
+    z-index: 2;
+}
+.comment-author {
+    font-size: 12px !important;
+    font-weight: 600;
+    color: #FDC2CC;
+    margin-right: 8px;
+    opacity: 0.9;
+}
+#lg-dist-filter {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+.bubbles {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.bubble {
+    position: absolute;
+    left: -100px; /* 从左侧屏幕外开始 */
+    background: rgba(255, 183, 197, 0.6); /* 粉色泡泡 */
+    border-radius: 50%;
+    animation: float 15s infinite linear;
+    opacity: 0.7;
+}
+
+/* 泡泡大小和位置变化 */
+.bubble:nth-child(1) {
+    width: 40px;
+    height: 40px;
+    top: 10%;
+    animation-duration: 20s;
+}
+
+.bubble:nth-child(2) {
+    width: 20px;
+    height: 20px;
+    top: 20%;
+    animation-duration: 25s;
+    animation-delay: 2s;
+}
+
+.bubble:nth-child(3) {
+    width: 50px;
+    height: 50px;
+    top: 35%;
+    animation-duration: 18s;
+    animation-delay: 1s;
+}
+
+.bubble:nth-child(4) {
+    width: 80px;
+    height: 80px;
+    top: 50%;
+    animation-duration: 30s;
+    animation-delay: 0s;
+}
+
+.bubble:nth-child(5) {
+    width: 35px;
+    height: 35px;
+    top: 55%;
+    animation-duration: 22s;
+    animation-delay: 3s;
+}
+
+.bubble:nth-child(6) {
+    width: 45px;
+    height: 45px;
+    top: 65%;
+    animation-duration: 28s;
+    animation-delay: 1s;
+}
+
+.bubble:nth-child(7) {
+    width: 25px;
+    height: 25px;
+    top: 75%;
+    animation-duration: 17s;
+    animation-delay: 2s;
+}
+
+.bubble:nth-child(8) {
+    width: 80px;
+    height: 80px;
+    top: 80%;
+    animation-duration: 26s;
+    animation-delay: 1s;
+}
+
+.bubble:nth-child(9) {
+    width: 15px;
+    height: 15px;
+    top: 70%;
+    animation-duration: 19s;
+    animation-delay: 0s;
+}
+
+.bubble:nth-child(10) {
+    width: 50px;
+    height: 50px;
+    top: 85%;
+    animation-duration: 24s;
+    animation-delay: 3s;
+}
+
+/* 水平浮动动画 */
+@keyframes float {
+    0% {
+        left: -100px;
+        transform: translateY(0);
+        opacity: 0.7;
+    }
+    50% {
+        transform: translateY(-50px);
+        opacity: 0.9;
+    }
+    100% {
+        left: 100%;
+        transform: translateY(50px);
+        opacity: 0;
+    }
+}
+.add-post-btn {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+}
+
+.add-post-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.add-post-form {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #555;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: inherit;
+}
+
+.form-group textarea {
+    min-height: 150px;
+}
+
+.submit-btn {
+    background: linear-gradient(135deg,#FDC2CC 0%, #FFF1F3 100%);
+    color: white;
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.post-image {
+    margin-bottom: 1rem;
+}
+
+.post-image img {
+    width: 100%;
+    border-radius: 10px;
+    max-height: 200px;
+    object-fit: cover;
+}
+
+.alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 5px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg,#FDC2CC 0%, #FFF1F3 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffd700;
+        }
+
+        /* 主要内容 */
+        .main-content {
+            margin-top: 80px;
+            padding: 2rem 0;
+        }
+
+        /* 个人介绍卡片 */
+.profile-card {
+    position: relative;
+    background: transparent;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    transform: translateY(0);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.profile-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    background: rgba(255, 255, 255, 0.2);
+    filter: url(#lg-dist);
+    border-radius: inherit;
+}
+
+.profile-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.85),
+                inset 0 0 4px rgba(255, 255, 255, 0.85);
+    border-radius: inherit;
+}
+
+        .profile-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg,#FDC2CC 0%, #FFF1F3 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            overflow: hidden;
+        }
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .profile-name {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .profile-bio {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        /* 博客文章 */
+        .blog-posts {
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        }
+
+.post-card {
+    position: relative;
+    background: transparent;
+    border-radius: 15px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+   }
+
+.post-card::before {
+    content: 'none';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    background: rgba(255, 255, 255, 0.2);
+    filter: url(#lg-dist);
+    border-radius: inherit;
+}
+
+.post-card::after {
+    content: 'none';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.85),
+                inset 0 0 4px rgba(255, 255, 255, 0.85);
+    border-radius: inherit;
+}
+
+        .post-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .post-title {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .post-date {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-content {
+            color: #555;
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        .post-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: linear-gradient(135deg,#FDC2CC 0%, #FFF1F3 100%);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+
+        /* 页脚 */
+        .footer {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .blog-posts {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 0 15px;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .post-card, .profile-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .post-card:nth-child(2) { animation-delay: 0.1s; }
+        .post-card:nth-child(3) { animation-delay: 0.2s; }
+        .post-card:nth-child(4) { animation-delay: 0.3s; }
