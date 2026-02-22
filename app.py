@@ -453,9 +453,13 @@ def get_comments(post_id):
         can_edit = can_edit_comment(comment, current_user)
         author_avatar = None
         author_id = None
+        is_admin = False  # 默认不是管理员
+
         if comment.author_user:
             author_avatar = comment.author_user.avatar_path
             author_id = comment.author_user.id
+            is_admin = comment.author_user.role == 'admin'  # 判断是否为管理员
+
         comments_data.append({
             'id': comment.id,
             'content': comment.content,
@@ -463,7 +467,8 @@ def get_comments(post_id):
             'date': comment.date.strftime('%Y-%m-%d %H:%M'),
             'can_edit': can_edit,
             'author_avatar': author_avatar,
-            'author_id': author_id
+            'author_id': author_id,
+            'is_admin': is_admin  # 添加管理员标志
         })
     return jsonify({'comments': comments_data})
 
@@ -505,7 +510,8 @@ def add_comment():
                 'date': new_comment.date.strftime('%Y-%m-%d %H:%M'),
                 'can_edit': True,
                 'author_avatar': current_user.avatar_path,
-                'author_id': current_user.id
+                'author_id': current_user.id,
+                'is_admin': current_user.role == 'admin'  # 添加管理员标志
             }
         })
     except Exception as e:
@@ -532,6 +538,9 @@ def edit_comment(comment_id):
         comment.content = content
         db.session.commit()
 
+        # 获取评论作者信息
+        is_admin = comment.author_user.role == 'admin' if comment.author_user else False
+
         return jsonify({
             'success': True,
             'message': '评论更新成功',
@@ -539,7 +548,10 @@ def edit_comment(comment_id):
                 'id': comment.id,
                 'content': comment.content,
                 'author': comment.author,
-                'date': comment.date.strftime('%Y-%m-%d %H:%M')
+                'date': comment.date.strftime('%Y-%m-%d %H:%M'),
+                'author_id': comment.user_id,
+                'author_avatar': comment.author_user.avatar_path if comment.author_user else None,
+                'is_admin': is_admin  # 添加管理员标志
             }
         })
     except Exception as e:

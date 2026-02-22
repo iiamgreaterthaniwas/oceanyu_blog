@@ -35,7 +35,7 @@
             {% if current_user %}
                 {{ current_user.username }}
                 {% if current_user.is_admin %}
-                <img src="/static/img/dav.png" alt="大V" style="height: 1.2em; width: auto; vertical-align: middle; margin-left: 1px;" onerror="this.style.display='none'">
+                
                 {% endif %}
             {% endif %}
         </h2>
@@ -43,7 +43,7 @@
             {% if current_user %}
                 {{ current_user.bio or '这个人很神秘，什么都没有留下~' }}
             {% else %}
-                一个适合你随时发疯的博客网站 · <a href="{{ url_for('login') }}" style="color:#FDC2CC;">登录</a> 或 <a href="{{ url_for('register') }}" style="color:#FDC2CC;">注册</a> 加入我们
+                一个适合你随时发疯的博客网站 · <a href="{{ url_for('login') }}" style="color:#FDC2CC;">登录</a> 或 <a href="{{ url_for('register') }}" style="color:#FDC2CC;">注册</a> 加入我们 · 如有问题请联系oceanyu.cooperate@gmail.com
             {% endif %}
         </p>
         {% if current_user %}
@@ -205,7 +205,7 @@
                 <div class="modal-comment-section">
                     {% if current_user %}
                     <button type="button" class="modal-comment-btn" onclick="openCommentModal(currentPostId, document.getElementById('modalTitle').textContent)">
-                        💬 添加评论
+                        💬
                     </button>
                     {% else %}
                     <a href="{{ url_for('login') }}" class="modal-comment-btn" style="text-decoration:none; display:inline-block;">
@@ -361,7 +361,187 @@
     font-size: 0.75rem;
     font-weight: bold;
 }
-
+@media (max-width: 768px) {
+        /* 评论项整体优化 */
+        .comment-item {
+            padding: 8px 10px !important;  /* 减小内边距 */
+            margin-bottom: 6px !important;  /* 减小底部间距 */
+            border-left-width: 2px !important;  /* 稍细的左边框 */
+        }
+        
+        /* 评论头部优化 */
+        .comment-header {
+            margin-bottom: 4px !important;  /* 减小头部底部间距 */
+        }
+        
+        /* 评论作者区域优化 */
+        .comment-header > div:first-child {
+            gap: 3px !important;  /* 减小作者区域元素间距 */
+        }
+        
+        /* 评论头像优化 */
+        .comment-avatar {
+            width: 22px !important;  /* 稍小的头像 */
+            height: 22px !important;
+            margin-right: 2px !important;
+        }
+        
+        .comment-avatar-text {
+            font-size: 0.7rem !important;
+        }
+        
+        /* 评论作者名称优化 */
+        .comment-author {
+            font-size: 11px !important;  /* 稍小的字体 */
+            margin-right: 3px !important;
+        }
+        
+        /* 评论日期优化 */
+        .comment-date {
+            font-size: 10px !important;  /* 更小的日期字体 */
+        }
+        
+        /* 管理员图标优化 */
+        .comment-author img[alt="大V"] {
+            height: 1.2em !important;  /* 稍小的管理员图标 */
+            top: -2px !important;
+        }
+        
+        /* 评论内容优化 */
+        .comment-content {
+            font-size: 13px !important;  /* 稍小的正文字体 */
+            line-height: 1.4 !important;  /* 减小行高 */
+            margin-bottom: 6px !important;  /* 减小底部间距 */
+            padding-left: 2px !important;
+        }
+        
+        /* 评论操作按钮区域优化 */
+        .comment-actions {
+            gap: 2px !important;  /* 减小按钮间距 */
+        }
+        
+        .comment-actions button {
+            padding: 3px 6px !important;  /* 减小按钮内边距 */
+            font-size: 10px !important;  /* 更小的按钮字体 */
+        }
+        
+        /* 评论按钮图标优化 */
+        .comment-edit-btn, .comment-delete-btn {
+            font-size: 10px !important;
+        }
+        
+        /* 编辑/删除图标大小调整 */
+        .comment-edit-btn:before, .comment-delete-btn:before {
+            font-size: 11px !important;
+        }
+        
+        /* 无评论提示优化 */
+        .no-comments {
+            padding: 12px !important;  /* 减小内边距 */
+            font-size: 13px !important;
+        }
+        
+        /* 评论标题优化 */
+        .comments-title {
+            margin-bottom: 10px !important;  /* 减小底部间距 */
+            font-size: 14px !important;
+        }
+        
+        /* 评论列表容器优化 */
+        .comments-list {
+            max-height: 250px !important;  /* 稍微减小最大高度 */
+        }
+        
+        /* 评论弹窗中的用户信息优化 */
+        .comment-user-info {
+            padding: 6px 8px !important;  /* 减小内边距 */
+            gap: 6px !important;
+            margin-bottom: 8px !important;
+        }
+        
+        .comment-user-avatar {
+            width: 30px !important;  /* 稍小的头像 */
+            height: 30px !important;
+        }
+        
+        .comment-username {
+            font-size: 12px !important;  /* 稍小的字体 */
+        }
+        
+        /* 评论表单优化 */
+        .form-group {
+            margin-bottom: 12px !important;  /* 减小底部间距 */
+        }
+        
+        .form-group label {
+            margin-bottom: 4px !important;  /* 减小标签底部间距 */
+            font-size: 13px !important;
+        }
+        
+        .form-group textarea {
+            padding: 8px !important;  /* 减小内边距 */
+            font-size: 13px !important;
+            min-height: 70px !important;  /* 减小最小高度 */
+        }
+        
+        /* 表单按钮优化 */
+        .form-actions {
+            gap: 8px !important;  /* 减小按钮间距 */
+        }
+        
+        .submit-btn, .cancel-btn {
+            padding: 8px 12px !important;  /* 减小按钮内边距 */
+            font-size: 13px !important;
+        }
+        
+        /* 评论模态框内容优化 */
+        .comment-modal .modal-body {
+            padding: 15px !important;  /* 减小模态框内边距 */
+        }
+        
+        /* 评论模态框头部优化 */
+        .comment-modal .modal-header {
+            padding: 12px 15px !important;  /* 减小头部内边距 */
+        }
+        
+        .comment-modal .modal-header h3 {
+            font-size: 16px !important;  /* 稍小的标题 */
+        }
+        
+        .comment-modal .close {
+            font-size: 24px !important;  /* 稍小的关闭按钮 */
+        }
+    }
+    
+    /* 针对小屏手机的进一步优化 */
+    @media (max-width: 480px) {
+        .comment-item {
+            padding: 6px 8px !important;
+        }
+        
+        .comment-content {
+            font-size: 12px !important;
+            line-height: 1.3 !important;
+        }
+        
+        .comment-actions button {
+            padding: 2px 5px !important;
+            font-size: 9px !important;
+        }
+        
+        .comment-author {
+            font-size: 10px !important;
+        }
+        
+        .comment-date {
+            font-size: 9px !important;
+        }
+        
+        .comment-avatar {
+            width: 20px !important;
+            height: 20px !important;
+        }
+    }
 /* 其余样式保持原有 */
 .modal-comment-section {
     margin-top: 20px;
@@ -984,7 +1164,6 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
     border-radius: 20px;
     font-size: 14px;
 }
-
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
@@ -1212,20 +1391,27 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                                 avatarHtml = `<div class="comment-avatar"><span class="comment-avatar-text">${comment.author ? comment.author[0] : '?'}</span></div>`;
                             }
 
+                            // 判断是否为管理员 - 假设后端返回的comment对象中有is_admin字段
+                            const isAdmin = comment.is_admin || false;
+
+                            const adminIconHtml = isAdmin
+                            ? `<img src="/static/img/dav.png" alt="大V" style="height: 1.5em; width: auto; vertical-align: middle; margin-left: 2px; display: inline-block;position: relative; top: -2px;" onerror="this.style.display='none'" class="admin-icon">`
+                            : '';
+
                             // 编辑/删除按钮（仅当can_edit为true）
                             let actionsHtml = '';
                             if (comment.can_edit) {
                                 actionsHtml = `
-                                    <div class="comment-actions">
+                                    <div class="comment-actions" style="display:flex; flex-direction:column; gap:4px;">
                                         <button class="comment-edit-btn" onclick="editComment(${comment.id}, \`${comment.content.replace(/`/g, '\\`')}\`)">✏️ 编辑</button>
                                         <button class="comment-delete-btn" onclick="deleteComment(${comment.id})">🗑️ 删除</button>
                                     </div>`;
                             }
 
-                            // 作者链接
+                            // 作者链接（带管理员图标）
                             let authorHtml = comment.author_id
-                                ? `<a href="/user/${comment.author_id}" style="color:#FDC2CC;text-decoration:none;" class="comment-author">${comment.author}</a>`
-                                : `<span class="comment-author">${comment.author}</span>`;
+                                ? `<a href="/user/${comment.author_id}" style="color:#FDC2CC;text-decoration:none;" class="comment-author">${comment.author}${adminIconHtml}</a>`
+                                : `<span class="comment-author">${comment.author}${adminIconHtml}</span>`;
 
                             return `
                                 <div class="comment-item">
