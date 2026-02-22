@@ -76,7 +76,218 @@
     box-shadow: 0 20px 60px rgba(253, 194, 204, 0.3), 0 0 0 1px rgba(255,255,255,0.6);
     animation: fadeInUp 0.5s ease;
 }
+/* 移动端响应式优化 */
+@media screen and (max-width: 768px) {
+    .auth-container {
+        padding: 1rem;
+        min-height: auto;
+        align-items: center;
+    }
+    
+    .auth-card {
+        padding: 1.5rem;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        border-radius: 20px;
+    }
+    
+    /* 让输入框占满整个宽度 */
+    .form-input {
+        width: 100%;
+        padding: 0.9rem 1rem;
+        font-size: 16px; /* 防止iOS自动缩放 */
+    }
+    
+    /* 密码输入框确保宽度 */
+    .password-wrapper {
+        width: 100%;
+    }
+    
+    .password-wrapper .form-input {
+        width: 100%;
+        padding-right: 3rem;
+    }
+    
+    /* 注册页面的头像上传区域 */
+    .avatar-upload-area {
+        width: 100%;
+        padding: 1.2rem 0.5rem;
+    }
+    
+    /* 头像预览区域 */
+    .auth-avatar {
+        width: 80px;
+        height: 80px;
+    }
+    
+    /* 标题文字大小调整 */
+    .auth-title {
+        font-size: 1.5rem;
+    }
+    
+    .auth-subtitle {
+        font-size: 0.85rem;
+    }
+    
+    /* 表单组间距 */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    /* 标签样式 */
+    .auth-form label {
+        font-size: 0.85rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    /* 按钮样式 */
+    .auth-submit-btn {
+        padding: 0.9rem 1rem;
+        font-size: 1rem;
+    }
+    
+    /* 编辑页面的按钮行 */
+    .form-actions-row {
+        flex-direction: column-reverse;
+        gap: 0.8rem;
+    }
+    
+    .cancel-btn-link {
+        width: 100%;
+        padding: 0.8rem;
+    }
+    
+    .auth-submit-btn {
+        width: 100%;
+        margin-top: 0;
+    }
+    
+    /* 密码修改区块 */
+    .password-section {
+        padding: 1rem;
+    }
+    
+    /* 气泡效果调整 */
+    .bubbles {
+        opacity: 0.4;
+    }
+    
+    .bubble {
+        width: 100px;
+        height: 100px;
+    }
+    
+    /* 禁用状态输入框 */
+    .form-input:disabled {
+        font-size: 14px;
+    }
+    
+    /* 表单提示文字 */
+    .form-hint {
+        font-size: 0.7rem;
+    }
+    
+    /* 上传提示文字 */
+    .upload-hint {
+        font-size: 0.85rem;
+    }
+    
+    .upload-formats {
+        font-size: 0.7rem;
+    }
+    
+    /* 认证页底部 */
+    .auth-footer {
+        margin-top: 1.2rem;
+        font-size: 0.85rem;
+    }
+    
+    /* 确保toggle按钮在合适位置 */
+    .toggle-pwd {
+        right: 0.8rem;
+        font-size: 1.1rem;
+    }
+    
+    /* 登录页logo调整 */
+    .auth-avatar img {
+        width: 100%;
+        height: 100%;
+    }
+}
 
+/* 针对更小屏幕的优化 */
+@media screen and (max-width: 380px) {
+    .auth-card {
+        padding: 1.2rem;
+    }
+    
+    .auth-avatar {
+        width: 70px;
+        height: 70px;
+        font-size: 2rem;
+    }
+    
+    .form-input {
+        padding: 0.8rem 0.9rem;
+    }
+    
+    .avatar-placeholder-text {
+        font-size: 2.5rem;
+    }
+}
+
+/* 确保输入框在各种设备上都有合适的宽度 */
+.form-input,
+.password-wrapper {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* 修复可能的溢出问题 */
+.auth-form {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+    .form-input,
+    .auth-submit-btn,
+    .toggle-pwd,
+    .avatar-upload-area {
+        cursor: default;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .auth-submit-btn:active {
+        transform: translateY(1px);
+    }
+}
+
+/* 修复iOS上输入框圆角和阴影问题 */
+input {
+    border-radius: 12px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* 确保密码切换按钮可点区域足够大 */
+.toggle-pwd {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 文件上传隐藏样式 */
+input[type="file"] {
+    font-size: 16px; /* 防止iOS缩放 */
+}
 .auth-header {
     text-align: center;
     margin-bottom: 2rem;

@@ -183,12 +183,15 @@ def register():
         # 判断是否为第一个用户（自动设为管理员）
         is_first_user = User.query.count() == 0
 
+        # 创建用户时设置带时区的时间
         new_user = User(
             username=username,
             email=email,
             bio=bio,
             avatar_path=avatar_path,
-            role='admin' if is_first_user else 'user'
+            role='admin' if is_first_user else 'user',
+            created_at=datetime.utcnow() + timedelta(hours=8),  # 添加时区
+            updated_at=datetime.utcnow() + timedelta(hours=8)   # 添加时区
         )
         new_user.set_password(password)
 
@@ -265,6 +268,8 @@ def edit_profile():
 
         current_user.bio = bio
         current_user.email = email
+        current_user.updated_at = datetime.utcnow() + timedelta(hours=8)  # 更新时区时间
+
         db.session.commit()
 
         flash('个人信息更新成功！', 'success')
