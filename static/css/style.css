@@ -376,7 +376,7 @@
    }
 
 .post-card::before {
-    content: 'none';
+    content: none;
     position: absolute;
     inset: 0;
     z-index: 0;
@@ -388,7 +388,7 @@
 }
 
 .post-card::after {
-    content: 'none';
+    content: none;
     position: absolute;
     inset: 0;
     z-index: 1;

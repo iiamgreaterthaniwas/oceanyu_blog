@@ -1,0 +1,893 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile_user.username }} 的主页 - 发疯博客{% endblock %}
+
+{% block content %}
+<div class="bubbles">
+    <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+    <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+</div>
+
+<div class="user-profile-page">
+    <!-- 用户信息卡片 - 保持原有样式，因为这是个人页特有的 -->
+    <div class="user-info-card">
+        <div class="user-avatar-large">
+            {% if profile_user.avatar_path %}
+                <img src="/{{ profile_user.avatar_path }}" alt="{{ profile_user.username }}的头像">
+            {% else %}
+                <span class="avatar-placeholder">{{ profile_user.username[0] }}</span>
+            {% endif %}
+        </div>
+
+        <div class="user-detail">
+            <div class="user-name-row">
+                <h2 class="user-display-name">{{ profile_user.username }}</h2>
+                {% if profile_user.role == 'admin' %}
+                <span class="role-badge admin-badge">👑 管理员</span>
+                {% else %}
+                <span class="role-badge user-badge">🌸 普通用户</span>
+                {% endif %}
+            </div>
+            <p class="user-bio-text">{{ profile_user.bio or '这个人很神秘，什么都没有留下~' }}</p>
+            {% if profile_user.email %}
+            <p class="user-email">📧 {{ profile_user.email }}</p>
+            {% endif %}
+            <p class="user-join-date">📅 加入于 {{ profile_user.created_at.strftime('%Y年%m月%d日') if profile_user.created_at else '未知' }}</p>
+
+            <div class="user-stats">
+                <div class="stat-item">
+                    <span class="stat-num">{{ posts|length }}</span>
+                    <span class="stat-label">篇文章</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num">{{ profile_user.comments|length }}</span>
+                    <span class="stat-label">条评论</span>
+                </div>
+            </div>
+        </div>
+
+        {% if current_user and current_user.id == profile_user.id %}
+        <div class="profile-edit-btn-wrap">
+            <a href="{{ url_for('edit_profile') }}" class="edit-profile-btn">✏️ 编辑资料</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 用户的博客列表 - 完全仿照index.html的卡片布局 -->
+    <div class="user-posts-section">
+        <h3 class="section-title">📝 TA 的文章</h3>
+        {% if posts %}
+        <div class="blog-posts">
+            {% for post in posts %}
+            {% set can_edit = current_user and (current_user.is_admin or current_user.id == post.user_id) %}
+            <div class="post-card"
+                 onclick="openPostModalSafe(this)"
+                 data-post='{{
+                   {
+                     "id": post.id,
+                     "title": post.title,
+                     "content": post.content,
+                     "images": post.image_paths_json|safe if post.image_paths_json else [],
+                     "tags": post.tags,
+                     "date": post.date.strftime('%Y-%m-%d'),
+                     "author": post.author_user.username if post.author_user else "匿名",
+                     "author_id": post.user_id
+                   }|tojson
+                 }}'>
+                <div class="post-content-wrapper">
+                    <h3 class="post-title">{{ post.title }}</h3>
+                    <div class="post-date">
+                        <img src="/static/img/calendar.png" alt="日历" style="width: 1.2em; height: 1.2em; vertical-align: middle; transform: translateY(-0.1em);" onerror="this.style.display='none'"> {{ post.date.strftime('%Y-%m-%d') }}
+                        {% if post.author_user %}
+                        · <a href="{{ url_for('user_profile', user_id=post.user_id) }}"
+                             onclick="event.stopPropagation()"
+                             style="color:#FDC2CC; text-decoration:none;">{{ post.author_user.username }}</a>
+                        {% endif %}
+                    </div>
+                    <p class="post-content">{{ post.content }}</p>
+                    <div class="post-tags">
+                        {% if post.tags %}
+                        {% for tag in post.tags.split(',') %}
+                        <span class="tag">{{ tag.strip() }}</span>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% if post.image_path %}
+                    <div class="post-image-count">📷 {{ post.image_count }}张图片</div>
+                    {% endif %}
+                </div>
+                {% if can_edit %}
+                <div class="post-actions">
+                    <button type="button" class="edit-btn"
+                            onclick="event.stopPropagation(); editPost({{ post.id }})">
+                        <img src="/static/img/edit.png" alt="编辑" style="width: 1.4em; height: 1.4em; vertical-align: middle;" onerror="this.style.display='none'"> 编辑
+                    </button>
+                    <button type="button" class="delete-btn"
+                            onclick="event.stopPropagation(); deletePost({{ post.id }}, '{{ post.title }}')">
+                        🗑️ 删除
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-posts">
+            <p>这个用户还没有发布任何文章~</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 文章详情弹窗 -->
+<div id="postModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle"></h3>
+            <span class="close" onclick="closePostModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="modal-post-meta">
+                <span id="modalDate" class="modal-date"></span>
+                <div id="modalTags" class="modal-tags"></div>
+            </div>
+            <div id="modalAuthorInfo" class="modal-author-info" style="margin-bottom:12px; display:none;">
+                <span id="modalAuthorAvatar"></span>
+                <a id="modalAuthorLink" href="#" style="color:#FDC2CC; text-decoration:none; font-size:0.9rem;"></a>
+            </div>
+            <p id="modalContent" class="modal-content-text"></p>
+            <div id="imageGrid" class="image-grid"></div>
+            <div class="modal-comment-section">
+                {% if current_user %}
+                <button type="button" class="modal-comment-btn" onclick="openCommentModal(currentPostId, document.getElementById('modalTitle').textContent)">
+                    💬 添加评论
+                </button>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="modal-comment-btn" style="text-decoration:none; display:inline-block;">
+                    💬 登录后评论
+                </a>
+                {% endif %}
+                <div id="commentsSection" class="comments-section">
+                    <h4 class="comments-title">评论 (<span id="commentCount">0</span>)</h4>
+                    <div id="commentsList" class="comments-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 评论弹窗 -->
+<div id="commentModal" class="modal">
+    <div class="modal-content comment-modal">
+        <div class="modal-header">
+            <h3 id="commentModalTitle">添加评论</h3>
+            <span class="close" onclick="closeCommentModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="commentForm">
+                <input type="hidden" id="commentPostId" name="post_id">
+                <input type="hidden" id="commentId" name="comment_id">
+                {% if current_user %}
+                <div class="comment-user-info">
+                    <div class="comment-user-avatar">
+                        {% if current_user.avatar_path %}
+                        <img src="/{{ current_user.avatar_path }}" alt="头像">
+                        {% else %}
+                        <span>{{ current_user.username[0] }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="comment-username">以 <strong>{{ current_user.username }}</strong> 的身份发表评论</span>
+                </div>
+                {% endif %}
+                <div class="form-group" style="margin-top:1rem;">
+                    <label for="commentContent">评论内容:</label>
+                    <textarea id="commentContent" name="content" required rows="4" placeholder="写下您的评论..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="submit-btn">🚀 提交评论</button>
+                    <button type="button" onclick="closeCommentModal()" class="cancel-btn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 大图预览弹窗 -->
+<div id="imagePreview" class="image-preview-modal">
+    <div class="image-preview-content">
+        <span class="image-preview-close" onclick="closeImagePreview()">&times;</span>
+        <img id="previewImage" src="" alt="预览图片">
+        <div class="image-nav">
+            <button id="prevBtn" onclick="prevImage()">&lt;</button>
+            <button id="nextBtn" onclick="nextImage()">&gt;</button>
+        </div>
+        <div id="imageCounter" class="image-counter"></div>
+    </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content delete-modal">
+        <div class="modal-header delete-header">
+            <h3>⚠️ 确认删除</h3>
+            <span class="close" onclick="closeDeleteModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="deleteMessage">确定要删除这篇文章吗？此操作无法撤销。</p>
+            <div class="delete-actions">
+                <button id="confirmDeleteBtn" class="confirm-delete-btn">确认删除</button>
+                <button onclick="closeDeleteModal()" class="cancel-btn">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="messageToast" class="message-toast">
+    <span id="messageText"></span>
+</div>
+
+<style>
+.user-profile-page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1rem 0;
+}
+
+/* 用户信息卡片 - 保持原有样式 */
+.user-info-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 2.5rem;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 10px 40px rgba(253, 194, 204, 0.25), 0 0 0 1px rgba(255,255,255,0.6);
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+    position: relative;
+    animation: fadeInUp 0.5s ease;
+}
+
+.user-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #FDC2CC, #FFF1F3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 30px rgba(253,194,204,0.4);
+}
+
+.user-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    font-size: 3rem;
+    color: white;
+    font-weight: bold;
+}
+
+.user-detail {
+    flex: 1;
+}
+
+.user-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.user-display-name {
+    font-size: 1.8rem;
+    color: #333;
+    margin: 0;
+}
+
+.role-badge {
+    padding: 0.2rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.admin-badge {
+    background: linear-gradient(135deg, #ffd700, #ffb800);
+    color: #7a5500;
+}
+
+.user-badge {
+    background: linear-gradient(135deg, #FDC2CC, #FFF1F3);
+    color: #c07080;
+}
+
+.user-bio-text {
+    color: #666;
+    font-size: 1.05rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+.user-email, .user-join-date {
+    color: #999;
+    font-size: 0.88rem;
+    margin-bottom: 0.3rem;
+}
+
+.user-stats {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-num {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #FDC2CC;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.profile-edit-btn-wrap {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+}
+
+.edit-profile-btn {
+    background: linear-gradient(135deg, #FDC2CC, #ffb3c1);
+    color: white;
+    text-decoration: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.edit-profile-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(253,194,204,0.5);
+}
+
+.section-title {
+    font-size: 1.3rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(253, 194, 204, 0.3);
+}
+
+.no-posts {
+    text-align: center;
+    padding: 3rem;
+    background: rgba(255,255,255,0.6);
+    border-radius: 16px;
+    color: #999;
+}
+
+/* 文章卡片样式 - 完全仿照index.html */
+.blog-posts {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.post-card {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    animation: cardFadeIn 0.8s ease forwards;
+    transform: translate3d(0, 0, 0);
+    will-change: transform, backdrop-filter;
+}
+
+.post-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.post-content-wrapper {
+    flex: 1;
+    padding-right: 15px;
+}
+
+.post-title {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 1.4rem;
+}
+
+.post-date {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+
+.post-content {
+    color: #444;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    white-space: pre-line;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 4.8em;
+}
+
+.post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.tag {
+    background: rgba(253, 194, 204, 0.2);
+    color: #c07080;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    border: 1px solid rgba(253, 194, 204, 0.3);
+}
+
+.post-image-count {
+    margin-top: 10px;
+    color: #667eea;
+    font-size: 14px;
+}
+
+.post-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-top: 10px;
+    gap: 8px;
+}
+
+.edit-btn {
+    background: #87CEEB;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0.8;
+    width: 100%;
+    min-width: 70px;
+}
+
+.post-card:hover .edit-btn {
+    opacity: 1;
+}
+
+.edit-btn:hover {
+    background: #5F9ED1;
+    transform: scale(1.05);
+}
+
+.delete-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0.8;
+    width: 100%;
+    min-width: 70px;
+}
+
+.post-card:hover .delete-btn {
+    opacity: 1;
+}
+
+.delete-btn:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+@keyframes cardFadeIn {
+    0% { opacity: 0; transform: translateY(20px) translate3d(0, 0, 0); }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; transform: translateY(0) translate3d(0, 0, 0); }
+}
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+    .user-info-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 1.8rem 1.5rem;
+    }
+
+    .profile-edit-btn-wrap {
+        position: static;
+        width: 100%;
+        text-align: center;
+        margin-top: 1rem;
+    }
+
+    .edit-profile-btn {
+        width: auto;
+    }
+
+    .user-name-row {
+        justify-content: center;
+    }
+
+    .user-stats {
+        justify-content: center;
+    }
+
+    .user-email, .user-join-date {
+        text-align: center;
+    }
+
+    .post-card {
+        flex-direction: row;
+        padding: 15px;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .post-content-wrapper {
+        padding-right: 0;
+        margin-bottom: 10px;
+    }
+
+    .post-actions {
+        justify-content: flex-end;
+        padding-top: 0;
+        align-items: flex-end;
+        width: auto;
+    }
+
+    .edit-btn, .delete-btn {
+        width: auto;
+        min-width: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    .post-card {
+        padding: 10px;
+    }
+
+    .post-title {
+        font-size: 18px;
+    }
+
+    .post-content {
+        font-size: 14px;
+    }
+
+    .delete-btn, .edit-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+        min-width: 55px;
+    }
+}
+
+/* 以下是从index.html复制的模态框样式，保持完全一致 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    animation: fadeIn 0.2s ease;
+}
+.modal-content {
+    background: white;
+    margin: 3% auto;
+    padding: 0;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 88vh;
+    overflow-y: auto;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid #eee;
+    position: sticky;
+    top: 0;
+    background: linear-gradient(135deg,#FDC2CC 0%, #FFF1F3 100%);
+    z-index: 10;
+    border-radius: 16px 16px 0 0;
+}
+.modal-header h3 { margin: 0; font-size: 1.2rem; color: white; }
+.close { font-size: 1.8rem; cursor: pointer; color: white; line-height: 1; opacity: 0.8; }
+.close:hover { color: white; opacity: 1; }
+.modal-body { padding: 1.5rem; }
+.modal-post-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+.modal-date { color: #6c757d; font-size: 14px; }
+.modal-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.modal-tags .tag { background: #f0f2ff; color: #667eea; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+.modal-content-text { margin-bottom: 20px; line-height: 1.6; white-space: pre-line; }
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    max-width: 80%;
+    margin-top: 15px;
+}
+.image-grid > div { aspect-ratio: 1; overflow: hidden; border-radius: 8px; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.image-grid img { width: 193px; height: 193px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s ease; }
+.image-grid img:hover, .image-grid > div:hover { transform: scale(1.05); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+.image-preview-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.95);
+}
+.image-preview-content { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.image-preview-close { position: absolute; top: 20px; right: 35px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 2001; }
+.image-preview-close:hover { opacity: 0.7; }
+#previewImage { max-width: 90%; max-height: 90%; object-fit: contain; }
+.image-nav button {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.8); border: none; font-size: 24px;
+    padding: 15px 20px; cursor: pointer; border-radius: 50%; transition: background 0.2s ease;
+}
+.image-nav button:hover { background: rgba(255,255,255,1); }
+#prevBtn { left: 20px; }
+#nextBtn { right: 20px; }
+.image-counter {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    color: white; background: rgba(0,0,0,0.7); padding: 10px 20px; border-radius: 20px; font-size: 14px;
+}
+.delete-modal { max-width: 450px; }
+.delete-header { background: linear-gradient(135deg, #ff6b6b, #ee5a24); border-radius: 16px 16px 0 0; }
+.delete-header h3 { color: white; }
+.delete-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+.confirm-delete-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white;
+    border: none; padding: 0.7rem 1.5rem; border-radius: 25px; cursor: pointer; font-weight: 600; flex: 1;
+}
+.cancel-btn { background: #f5f5f5; color: #666; border: none; padding: 0.7rem 1.5rem; border-radius: 25px; cursor: pointer; font-weight: 600; flex: 1; }
+.cancel-btn:hover { background: #e9e9e9; }
+.modal-comment-section { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
+.modal-comment-btn {
+    background: linear-gradient(135deg, #FDC2CC 0%, #FFF1F3 100%);
+    color: #333; border: none; padding: 10px 20px; border-radius: 25px; font-size: 14px;
+    cursor: pointer; transition: all 0.3s ease; margin-bottom: 20px; display: inline-block;
+    box-shadow: 0 3px 10px rgba(253,194,204,0.3); font-weight: 500;
+}
+.modal-comment-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(253,194,204,0.4); }
+.comments-title { font-size: 1rem; color: #555; margin-bottom: 1rem; }
+.comment-item { padding: 0.8rem; background: #fafafa; border-radius: 10px; margin-bottom: 0.7rem; }
+.comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+.comment-author { font-weight: 600; font-size: 0.88rem; color: #555; }
+.comment-date { font-size: 0.78rem; color: #aaa; margin-left: 6px; }
+.comment-content { font-size: 0.92rem; color: #444; line-height: 1.5; }
+.comment-actions { display: flex; gap: 6px; }
+.comment-edit-btn, .comment-delete-btn { border: none; background: none; cursor: pointer; font-size: 0.78rem; padding: 2px 8px; border-radius: 12px; }
+.comment-edit-btn { color: #FDC2CC; background: rgba(253,194,204,0.1); }
+.comment-delete-btn { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+.no-comments { text-align: center; color: #aaa; padding: 1.5rem; }
+.comment-user-info { display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem; background: rgba(253,194,204,0.1); border-radius: 10px; margin-bottom: 0.5rem; }
+.comment-user-avatar { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #FDC2CC, #FFF1F3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.comment-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.comment-user-avatar span { color: white; font-weight: bold; }
+.comment-username { color: #666; font-size: 0.9rem; }
+.comment-avatar { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #FDC2CC, #FFF1F3); display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; margin-right: 4px; flex-shrink: 0; }
+.comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.comment-avatar-text { color: white; font-size: 0.75rem; font-weight: bold; }
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 0.4rem; color: #555; font-size: 0.9rem; }
+.form-group textarea { width: 100%; padding: 0.7rem; border: 1px solid #eee; border-radius: 10px; font-size: 0.9rem; resize: vertical; font-family: inherit; box-sizing: border-box; }
+.form-actions { display: flex; gap: 1rem; margin-top: 1rem; }
+.submit-btn { background: linear-gradient(135deg, #FDC2CC, #ffb3c1); color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 25px; cursor: pointer; font-weight: 600; flex: 1; }
+.message-toast { position: fixed; top: 20px; right: 20px; background: #FDC2CC; color: white; padding: 12px 20px; border-radius: 25px; font-size: 14px; z-index: 3000; display: none; box-shadow: 0 5px 20px rgba(253,194,204,0.4); }
+.message-toast.error { background: #ff6b6b; }
+.message-toast.warning { background: #ffa726; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+
+<script>
+    let currentImages = [];
+    let currentImageIndex = 0;
+    let currentDeletePostId = null;
+    let currentPostId = null;
+    let currentCommentId = null;
+
+    function openPostModalSafe(element) {
+        try {
+            const postData = JSON.parse(element.dataset.post);
+            if (!postData || !postData.id) throw new Error('文章数据无效');
+            currentPostId = parseInt(postData.id);
+            openPostModal(postData.id, postData.title, postData.content, postData.images, postData.tags, postData.date, postData.author, postData.author_id);
+            loadComments(currentPostId);
+        } catch (e) {
+            console.error('解析文章数据失败:', e);
+            alert('无法打开文章详情，请刷新页面重试');
+        }
+    }
+
+    function openPostModal(postId, title, content, imagePaths, tags, date, author, authorId) {
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalContent').textContent = content;
+        document.getElementById('modalDate').innerHTML = '<img src="/static/img/calendar.png" alt="日历" style="width:1.2em;height:1.2em;vertical-align:middle;" onerror="this.style.display=\'none\'"> ' + date;
+        const authorInfo = document.getElementById('modalAuthorInfo');
+        if (author && authorId) {
+            document.getElementById('modalAuthorLink').textContent = '👤 ' + author;
+            document.getElementById('modalAuthorLink').href = '/user/' + authorId;
+            authorInfo.style.display = 'flex'; authorInfo.style.alignItems = 'center'; authorInfo.style.gap = '6px';
+        } else { authorInfo.style.display = 'none'; }
+        const tagsContainer = document.getElementById('modalTags');
+        tagsContainer.innerHTML = '';
+        if (tags) { tags.split(',').forEach(tag => { if (tag.trim()) { const el = document.createElement('span'); el.className = 'tag'; el.textContent = tag.trim(); tagsContainer.appendChild(el); } }); }
+        currentImages = [];
+        if (imagePaths) {
+            if (Array.isArray(imagePaths)) currentImages = imagePaths;
+            else if (typeof imagePaths === 'string') { try { currentImages = JSON.parse(imagePaths); } catch(e) { currentImages = []; } }
+        }
+        const imageGrid = document.getElementById('imageGrid');
+        imageGrid.innerHTML = '';
+        if (currentImages.length > 0) {
+            const displayCount = Math.min(currentImages.length, 9);
+            const showMore = currentImages.length > 9;
+            for (let i = 0; i < displayCount; i++) {
+                const img = document.createElement('img');
+                img.src = '/' + currentImages[i]; img.alt = `图片 ${i + 1}`;
+                const container = document.createElement('div');
+                container.style.cssText = 'position:relative;display:inline-block;width:100%;height:100%;';
+                if (i === 8 && showMore) {
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:24px;border-radius:8px;';
+                    overlay.textContent = `+${currentImages.length - 9}`;
+                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                    container.appendChild(img); container.appendChild(overlay);
+                } else {
+                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                    container.appendChild(img);
+                }
+                container.onclick = () => openImagePreview(i);
+                imageGrid.appendChild(container);
+            }
+        } else { imageGrid.innerHTML = '<p class="no-images">暂无图片</p>'; }
+        document.getElementById('postModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closePostModal() { document.getElementById('postModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
+    function openImagePreview(index) { currentImageIndex = index; document.getElementById('previewImage').src = '/' + currentImages[index]; document.getElementById('imagePreview').style.display = 'block'; document.getElementById('imageCounter').textContent = `${index + 1} / ${currentImages.length}`; updateNavButtons(); }
+    function closeImagePreview() { document.getElementById('imagePreview').style.display = 'none'; }
+    function prevImage() { if (currentImageIndex > 0) { currentImageIndex--; document.getElementById('previewImage').src = '/' + currentImages[currentImageIndex]; document.getElementById('imageCounter').textContent = `${currentImageIndex + 1} / ${currentImages.length}`; updateNavButtons(); } }
+    function nextImage() { if (currentImageIndex < currentImages.length - 1) { currentImageIndex++; document.getElementById('previewImage').src = '/' + currentImages[currentImageIndex]; document.getElementById('imageCounter').textContent = `${currentImageIndex + 1} / ${currentImages.length}`; updateNavButtons(); } }
+    function updateNavButtons() { document.getElementById('prevBtn').style.opacity = currentImageIndex === 0 ? '0.3' : '1'; document.getElementById('nextBtn').style.opacity = currentImageIndex === currentImages.length - 1 ? '0.3' : '1'; }
+    function editPost(postId) { window.location.href = `/edit_post/${postId}`; }
+    function deletePost(postId, postTitle) {
+        currentDeletePostId = postId;
+        document.getElementById('deleteMessage').textContent = `确定要删除《${postTitle}》吗？此操作无法撤销。`;
+        document.getElementById('deleteModal').style.display = 'block'; document.body.style.overflow = 'hidden';
+        document.getElementById('confirmDeleteBtn').onclick = function() {
+            fetch(`/delete_post/${postId}`, { method: 'POST' }).then(res => res.json()).then(data => {
+                if (data.success) { closeDeleteModal(); location.reload(); } else { showMessage(data.message || '删除失败', 'error'); }
+            }).catch(() => showMessage('删除失败，请重试', 'error'));
+        };
+    }
+    function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
+    function openCommentModal(postId, postTitle, commentId = null, content = '') {
+        if (!postId || isNaN(postId)) return;
+        currentPostId = parseInt(postId); currentCommentId = commentId;
+        document.getElementById('commentPostId').value = currentPostId;
+        document.getElementById('commentId').value = commentId || '';
+        document.getElementById('commentContent').value = content;
+        document.getElementById('commentModalTitle').textContent = commentId ? '编辑评论' : `为《${postTitle}》添加评论`;
+        document.getElementById('commentModal').style.display = 'block'; document.body.style.overflow = 'hidden';
+    }
+    function closeCommentModal() { document.getElementById('commentModal').style.display = 'none'; document.body.style.overflow = 'auto'; currentCommentId = null; document.getElementById('commentForm').reset(); }
+    function loadComments(postId) {
+        if (!postId || isNaN(postId)) return;
+        fetch(`/get_comments/${parseInt(postId)}`).then(res => res.json()).then(data => {
+            const commentsList = document.getElementById('commentsList');
+            document.getElementById('commentCount').textContent = data.comments.length;
+            if (data.comments.length === 0) { commentsList.innerHTML = '<div class="no-comments">暂无评论！</div>'; return; }
+            commentsList.innerHTML = data.comments.map(comment => {
+                let avatarHtml = comment.author_avatar
+                    ? `<div class="comment-avatar"><img src="/${comment.author_avatar}" alt="头像"></div>`
+                    : `<div class="comment-avatar"><span class="comment-avatar-text">${comment.author ? comment.author[0] : '?'}</span></div>`;
+                let actionsHtml = comment.can_edit ? `<div class="comment-actions"><button class="comment-edit-btn" onclick="editComment(${comment.id}, \`${comment.content.replace(/`/g, '\\`')}\`)">✏️ 编辑</button><button class="comment-delete-btn" onclick="deleteComment(${comment.id})">🗑️ 删除</button></div>` : '';
+                let authorHtml = comment.author_id ? `<a href="/user/${comment.author_id}" style="color:#FDC2CC;text-decoration:none;" class="comment-author">${comment.author}</a>` : `<span class="comment-author">${comment.author}</span>`;
+                return `<div class="comment-item"><div class="comment-header"><div style="display:flex;align-items:center;gap:6px;">${avatarHtml}${authorHtml}<span class="comment-date">${comment.date}</span></div>${actionsHtml}</div><div class="comment-content">${comment.content}</div></div>`;
+            }).join('');
+        }).catch(() => { document.getElementById('commentsList').innerHTML = '<div class="no-comments" style="color:#dc3545;">加载评论失败</div>'; });
+    }
+    function editComment(commentId, content) { if (!currentPostId) return; openCommentModal(currentPostId, '', commentId, content); }
+    function deleteComment(commentId) {
+        if (!currentPostId) return;
+        if (confirm('确定要删除这条评论吗？')) {
+            fetch(`/delete_comment/${commentId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } }).then(res => res.json()).then(data => {
+                if (data.success) { loadComments(currentPostId); showMessage('评论删除成功！', 'success'); } else { showMessage('删除失败: ' + data.message, 'error'); }
+            }).catch(() => showMessage('删除失败，请重试', 'error'));
+        }
+    }
+    document.getElementById('commentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const postId = parseInt(formData.get('post_id'));
+        if (!postId || isNaN(postId)) { showMessage('文章信息错误', 'error'); return; }
+        const content = formData.get('content').trim();
+        if (!content) { showMessage('评论内容不能为空', 'warning'); return; }
+        const commentId = formData.get('comment_id');
+        const url = commentId ? `/edit_comment/${commentId}` : '/add_comment';
+        const isEdit = !!commentId;
+        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ post_id: postId, content }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) { closeCommentModal(); loadComments(currentPostId); showMessage(isEdit ? '评论编辑成功！' : '评论添加成功！', 'success'); } else { showMessage(data.message || '操作失败', 'error'); }
+            }).catch(() => showMessage('提交失败，请重试', 'error'));
+    });
+    function showMessage(message, type = 'success') { const toast = document.getElementById('messageToast'); document.getElementById('messageText').textContent = message; toast.className = `message-toast ${type}`; toast.style.display = 'block'; setTimeout(() => { toast.style.display = 'none'; }, 3000); }
+    document.addEventListener('keydown', function(e) {
+        if (document.getElementById('imagePreview').style.display === 'block') { if (e.key === 'ArrowLeft') prevImage(); else if (e.key === 'ArrowRight') nextImage(); else if (e.key === 'Escape') closeImagePreview(); }
+        else if (document.getElementById('postModal').style.display === 'block') { if (e.key === 'Escape') closePostModal(); }
+        else if (document.getElementById('deleteModal').style.display === 'block') { if (e.key === 'Escape') closeDeleteModal(); }
+        else if (document.getElementById('commentModal').style.display === 'block') { if (e.key === 'Escape') closeCommentModal(); }
+    });
+    window.onclick = function(event) {
+        if (event.target === document.getElementById('postModal')) closePostModal();
+        else if (event.target === document.getElementById('imagePreview')) closeImagePreview();
+        else if (event.target === document.getElementById('deleteModal')) closeDeleteModal();
+        else if (event.target === document.getElementById('commentModal')) closeCommentModal();
+    };
+</script>
+{% endblock %}

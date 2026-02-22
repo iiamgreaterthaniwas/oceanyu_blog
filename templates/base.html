@@ -28,25 +28,52 @@
                                     <input type="date" name="search_date"
                                            value="{{ search_date or '' }}"
                                            class="nav-search-date">
-                                    <button type="submit" class="nav-search-btn">          <img src="/static/img/search.png" alt="搜索" style="width: 1em; height: 1em; vertical-align: middle;"></button>
+                                    <button type="submit" class="nav-search-btn">
+                                        <img src="/static/img/search.png" alt="搜索" style="width: 1em; height: 1em; vertical-align: middle;" onerror="this.outerHTML='🔍'">
+                                    </button>
                                     {% if search_title or search_date %}
-                                    <a href="{{ url_for('index') }}" class="nav-clear-btn" title="清除搜索">          <img src="/static/img/clear.png" alt="清空搜素哦" style="width: 1em; height: 1em; vertical-align: middle;"></a>
+                                    <a href="{{ url_for('index') }}" class="nav-clear-btn" title="清除搜索">
+                                        <img src="/static/img/clear.png" alt="清空" style="width: 1em; height: 1em; vertical-align: middle;" onerror="this.outerHTML='✕'">
+                                    </a>
                                     {% endif %}
                                 </div>
 
-                                <!-- 第二行：日期选择和添加按钮 -->
+                                <!-- 第二行：日期选择和添加按钮（移动端） -->
                                 <div class="search-row-2">
                                     <input type="date" name="search_date"
                                            value="{{ search_date or '' }}"
                                            class="nav-search-date">
+                                    {% if current_user %}
                                     <a href="{{ url_for('add_post') }}" class="mobile-add-post-btn">添加文章</a>
+                                    {% else %}
+                                    <a href="{{ url_for('login') }}" class="mobile-add-post-btn">登录</a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </form>
                     </div>
 
+                    <!-- 右侧导航（PC端） -->
                     <ul class="nav-links">
+                        {% if current_user %}
                         <li><a href="{{ url_for('add_post') }}" class="add-post-btn">添加文章</a></li>
+                        <li class="nav-user-item">
+                            <a href="{{ url_for('user_profile', user_id=current_user.id) }}" class="nav-user-link" title="{{ current_user.username }}">
+                                <div class="nav-avatar">
+                                    {% if current_user.avatar_path %}
+                                    <img src="/{{ current_user.avatar_path }}" alt="头像">
+                                    {% else %}
+                                    <span class="nav-avatar-text">{{ current_user.username[0] }}</span>
+                                    {% endif %}
+                                </div>
+                                <span class="nav-username">{{ current_user.username }}</span>
+                            </a>
+                            <a href="{{ url_for('logout') }}" class="nav-logout-btn" title="退出登录">退出</a>
+                        </li>
+                        {% else %}
+                        <li><a href="{{ url_for('login') }}" class="add-post-btn">登录</a></li>
+                        <li><a href="{{ url_for('register') }}" class="nav-register-btn">注册</a></li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>
@@ -93,12 +120,14 @@
         .nav-search-form {
             width: 100%;
         }
+
         .footer, .footer a {
             color: black;
         }
         .footer a {
             text-decoration: none;
         }
+
         .nav-search-group {
             display: flex;
             align-items: center;
@@ -110,7 +139,6 @@
             position: relative;
         }
 
-        /* PC端：第一行包含所有搜索元素 */
         .search-row-1 {
             display: flex;
             align-items: center;
@@ -118,7 +146,6 @@
             gap: 5px;
         }
 
-        /* PC端：第二行默认隐藏 */
         .search-row-2 {
             display: none;
         }
@@ -152,10 +179,12 @@
             filter: invert(1);
             opacity: 0.7;
         }
-    .alert {
-        transition: opacity 0.5s ease;
-        opacity: 1;
-    }
+
+        .alert {
+            transition: opacity 0.5s ease;
+            opacity: 1;
+        }
+
         .nav-search-btn, .nav-clear-btn {
             background: rgba(255, 255, 255, 0.2);
             border: none;
@@ -187,6 +216,93 @@
 
         .nav-links {
             flex-shrink: 0;
+            display: flex;
+            list-style: none;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        /* 用户导航项 */
+        .nav-user-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-user-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem 0.4rem 0.4rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .nav-user-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .nav-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FDC2CC, #FFF1F3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .nav-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .nav-avatar-text {
+            color: white;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .nav-username {
+            font-size: 0.9rem;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .nav-logout-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-logout-btn:hover {
+            background: rgba(255, 100, 100, 0.3);
+        }
+
+        .nav-register-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-register-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
         }
 
         /* 移动端添加文章按钮 - 默认隐藏 */
@@ -201,12 +317,9 @@
                 align-items: stretch;
                 gap: 15px;
             }
-    .profile-name img {
-        margin-left: -0.5em;  /* 向左移动，减少间距 */
-        margin-right: -0.5em; /* 向右移动，减少间距 */
-    }
+
             .main-content {
-                margin-top: 190px; /* 根据导航栏实际高度调整 */
+                margin-top: 190px;
                 padding: 20px 0;
             }
 
@@ -215,7 +328,6 @@
                 max-width: 100%;
             }
 
-            /* 隐藏桌面端的添加文章按钮 */
             .nav-links {
                 display: none;
             }
@@ -226,17 +338,14 @@
                 margin-bottom: 10px;
             }
 
-            /* 移动端：修改搜索组布局为两行 */
             .nav-search-group {
                 display: block;
                 padding: 15px;
-                background: rgba(255, 255, 255, 0.1); /* 保持外层半透明 */
+                background: rgba(255, 255, 255, 0.1);
                 border-radius: 25px;
-                backdrop-filter: none;
-                -webkit-backdrop-filter: none;
                 border: 1px solid rgba(255, 255, 255, 0.2);
             }
-            /* 移动端：第一行重新布局 */
+
             .search-row-1 {
                 display: flex;
                 align-items: center;
@@ -244,19 +353,16 @@
                 margin-bottom: 10px;
             }
 
-            /* 移动端：显示第二行 */
             .search-row-2 {
                 display: flex;
                 align-items: center;
                 gap: 10px;
             }
 
-            /* 移动端第一行：隐藏日期选择框 */
             .search-row-1 .nav-search-date {
                 display: none;
             }
 
-            /* 移动端第二行：显示日期选择框 */
             .search-row-2 .nav-search-date {
                 display: block;
             }
@@ -266,11 +372,12 @@
                 padding: 12px 15px;
                 font-size: 16px;
                 border-radius: 25px;
-                background: transparent; /* 输入框本身透明 */
-                border: none; /* 去掉内部边框 */
+                background: transparent;
+                border: none;
                 margin: 0;
                 color: white;
             }
+
             .nav-search-btn,
             .nav-clear-btn {
                 padding: 12px 15px;
@@ -291,7 +398,6 @@
                 border-left: none;
             }
 
-            /* 显示移动端添加文章按钮，并设置样式与PC端一致 */
             .mobile-add-post-btn {
                 display: inline-flex;
                 align-items: center;
@@ -305,8 +411,6 @@
                 font-weight: 500;
                 transition: all 0.3s ease;
                 border: 1px solid rgba(255, 255, 255, 0.2);
-                backdrop-filter: none;
-                -webkit-backdrop-filter: none;
                 flex-shrink: 0;
                 margin: 0;
             }
@@ -318,14 +422,6 @@
 
             body {
                 font-size: 16px;
-            }
-
-            h2 {
-                font-size: 20px;
-            }
-
-            h3 {
-                font-size: 18px;
             }
         }
 
@@ -350,6 +446,7 @@
             }
         }
     </style>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const flashMessage = document.getElementById('flash-message');
@@ -358,15 +455,15 @@
                 flashMessage.style.opacity = '0';
                 setTimeout(function() {
                     flashMessage.style.display = 'none';
-                }, 500); // 淡出动画完成后移除
-            }, 3000); // 3秒后开始淡出
+                }, 500);
+            }, 3000);
         }
     });
+
     // 同步两个日期输入框的值
     document.addEventListener('DOMContentLoaded', function() {
         const dateInputs = document.querySelectorAll('input[name="search_date"]');
 
-        // 当任一日期输入框的值变化时，同步到另一个
         dateInputs.forEach(input => {
             input.addEventListener('change', function() {
                 dateInputs.forEach(otherInput => {
@@ -377,7 +474,6 @@
             });
         });
 
-        // 初始同步（如果有值）
         if (dateInputs.length > 0 && dateInputs[0].value) {
             dateInputs.forEach(input => {
                 input.value = dateInputs[0].value;

@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}登录 - 发疯博客{% endblock %}
+
+{% block content %}
+<div class="bubbles">
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+</div>
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-avatar">
+                <img src="/static/img/oceanyu.png" alt="logo" onerror="this.style.display='none'">
+                <span class="auth-icon-fallback">🌊</span>
+            </div>
+            <h2 class="auth-title">欢迎回来</h2>
+            <p class="auth-subtitle">登录你的发疯博客账号</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('login') }}" class="auth-form">
+            <div class="form-group">
+                <label for="username">
+                    <span class="form-icon">👤</span> 用户名
+                </label>
+                <input type="text" id="username" name="username" required
+                       placeholder="请输入用户名" autocomplete="username"
+                       class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label for="password">
+                    <span class="form-icon">🔒</span> 密码
+                </label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" required
+                           placeholder="请输入密码" autocomplete="current-password"
+                           class="form-input">
+                    <button type="button" class="toggle-pwd" onclick="togglePassword('password')">👁️</button>
+                </div>
+            </div>
+
+            <button type="submit" class="auth-submit-btn">
+                🚀 登录
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>还没有账号？<a href="{{ url_for('register') }}" class="auth-link">立即注册</a></p>
+        </div>
+    </div>
+</div>
+
+<style>
+.auth-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 75vh;
+    padding: 2rem;
+}
+
+.auth-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(253, 194, 204, 0.3), 0 0 0 1px rgba(255,255,255,0.6);
+    animation: fadeInUp 0.5s ease;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    background: linear-gradient(135deg, #FDC2CC, #FFF1F3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(253,194,204,0.4);
+}
+
+.auth-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.auth-icon-fallback {
+    display: none;
+}
+
+.auth-avatar img:not([src]),
+.auth-avatar img[src=""] {
+    display: none;
+}
+
+.auth-title {
+    font-size: 1.8rem;
+    color: #333;
+    margin-bottom: 0.3rem;
+}
+
+.auth-subtitle {
+    color: #888;
+    font-size: 0.95rem;
+}
+
+.auth-form .form-group {
+    margin-bottom: 1.3rem;
+}
+
+.auth-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #555;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.form-icon {
+    margin-right: 4px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 2px solid rgba(253, 194, 204, 0.4);
+    border-radius: 12px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: rgba(255,255,255,0.8);
+    color: #333;
+    transition: all 0.3s ease;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.form-input:focus {
+    border-color: #FDC2CC;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(253,194,204,0.15);
+}
+
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper .form-input {
+    padding-right: 3rem;
+}
+
+.toggle-pwd {
+    position: absolute;
+    right: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.toggle-pwd:hover {
+    opacity: 1;
+}
+
+.auth-submit-btn {
+    width: 100%;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, #FDC2CC, #ffb3c1);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 0.5rem;
+    font-family: inherit;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.auth-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(253,194,204,0.5);
+}
+
+.auth-submit-btn:active {
+    transform: translateY(0);
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.auth-link {
+    color: #FDC2CC;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.auth-link:hover {
+    color: #ff8fa3;
+}
+</style>
+
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+</script>
+{% endblock %}

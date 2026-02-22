@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}编辑资料 - 发疯博客{% endblock %}
+
+{% block content %}
+<div class="bubbles">
+    <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+    <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+</div>
+
+<div class="auth-container">
+    <div class="auth-card edit-profile-card">
+        <div class="auth-header">
+            <div class="auth-avatar" onclick="document.getElementById('avatar').click()" style="cursor:pointer;" title="点击更换头像">
+                {% if current_user.avatar_path %}
+                    <img id="avatarPreview" src="/{{ current_user.avatar_path }}" alt="头像">
+                {% else %}
+                    <img id="avatarPreview" src="" alt="" style="display:none;">
+                    <span class="avatar-placeholder-text" id="avatarFallback">{{ current_user.username[0] }}</span>
+                {% endif %}
+                <div class="avatar-change-overlay">📷</div>
+            </div>
+            <h2 class="auth-title">编辑我的资料</h2>
+            <p class="auth-subtitle">点击头像可更换照片</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('edit_profile') }}" class="auth-form" enctype="multipart/form-data">
+            <input type="file" id="avatar" name="avatar" accept="image/*" style="display:none" onchange="previewAvatar(this)">
+
+            <div class="form-group">
+                <label>
+                    <span class="form-icon">👤</span> 用户名
+                </label>
+                <input type="text" value="{{ current_user.username }}" class="form-input" disabled
+                       style="opacity:0.6; cursor:not-allowed;" title="用户名暂不支持修改">
+                <small class="form-hint">用户名暂不支持修改</small>
+            </div>
+
+            <div class="form-group">
+                <label for="email">
+                    <span class="form-icon">📧</span> 邮箱（可选）
+                </label>
+                <input type="email" id="email" name="email"
+                       value="{{ current_user.email or '' }}"
+                       placeholder="your@email.com"
+                       class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label for="bio">
+                    <span class="form-icon">✏️</span> 个性签名
+                </label>
+                <input type="text" id="bio" name="bio"
+                       value="{{ current_user.bio or '' }}"
+                       placeholder="写下你的个性签名~" maxlength="100"
+                       class="form-input">
+            </div>
+
+            <div class="password-section">
+                <div class="password-section-title">🔒 修改密码（不修改留空）</div>
+                <div class="form-group">
+                    <label for="new_password">新密码</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="new_password" name="new_password"
+                               placeholder="至少6位" minlength="6"
+                               class="form-input" autocomplete="new-password">
+                        <button type="button" class="toggle-pwd" onclick="togglePassword('new_password')">👁️</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">确认新密码</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="confirm_password" name="confirm_password"
+                               placeholder="再次输入新密码"
+                               class="form-input" autocomplete="new-password">
+                        <button type="button" class="toggle-pwd" onclick="togglePassword('confirm_password')">👁️</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions-row">
+                <a href="{{ url_for('user_profile', user_id=current_user.id) }}" class="cancel-btn-link">取消</a>
+                <button type="submit" class="auth-submit-btn">💾 保存修改</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.auth-container {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 75vh;
+    padding: 2rem;
+}
+
+.edit-profile-card {
+    max-width: 460px;
+}
+
+.auth-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 2.5rem;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(253, 194, 204, 0.3), 0 0 0 1px rgba(255,255,255,0.6);
+    animation: fadeInUp 0.5s ease;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    background: linear-gradient(135deg, #FDC2CC, #FFF1F3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(253,194,204,0.4);
+    position: relative;
+    transition: transform 0.2s;
+}
+
+.auth-avatar:hover .avatar-change-overlay {
+    opacity: 1;
+}
+
+.auth-avatar:hover {
+    transform: scale(1.05);
+}
+
+.auth-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.avatar-placeholder-text {
+    font-size: 3rem;
+    color: white;
+    font-weight: bold;
+}
+
+.avatar-change-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: 50%;
+}
+
+.auth-title {
+    font-size: 1.6rem;
+    color: #333;
+    margin-bottom: 0.3rem;
+}
+
+.auth-subtitle {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.form-group {
+    margin-bottom: 1.2rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #555;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.form-icon {
+    margin-right: 4px;
+}
+
+.form-hint {
+    display: block;
+    color: #bbb;
+    font-size: 0.78rem;
+    margin-top: 0.3rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 2px solid rgba(253, 194, 204, 0.4);
+    border-radius: 12px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: rgba(255,255,255,0.8);
+    color: #333;
+    transition: all 0.3s ease;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.form-input:focus {
+    border-color: #FDC2CC;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(253,194,204,0.15);
+}
+
+.password-section {
+    background: rgba(253, 194, 204, 0.06);
+    border: 1px solid rgba(253, 194, 204, 0.2);
+    border-radius: 16px;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.password-section-title {
+    color: #888;
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+}
+
+.password-section .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper .form-input {
+    padding-right: 3rem;
+}
+
+.toggle-pwd {
+    position: absolute;
+    right: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.toggle-pwd:hover {
+    opacity: 1;
+}
+
+.form-actions-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.cancel-btn-link {
+    flex: 1;
+    text-align: center;
+    padding: 0.9rem;
+    border: 2px solid rgba(253, 194, 204, 0.4);
+    border-radius: 12px;
+    color: #888;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn-link:hover {
+    border-color: #FDC2CC;
+    color: #FDC2CC;
+}
+
+.auth-submit-btn {
+    flex: 2;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, #FDC2CC, #ffb3c1);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.auth-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(253,194,204,0.5);
+}
+</style>
+
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function previewAvatar(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('avatarPreview');
+            const fallback = document.getElementById('avatarFallback');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            if (fallback) fallback.style.display = 'none';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}
