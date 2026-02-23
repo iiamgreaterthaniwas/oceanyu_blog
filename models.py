@@ -58,6 +58,8 @@ class Comment(db.Model):
     author = db.Column(db.String(50), nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    voice_path = db.Column(db.String(500), nullable=True)       # 语音文件路径
+    voice_duration = db.Column(db.Integer, nullable=True)       # 语音时长（秒）
 
     # 建立与Post模型的关系
     post = db.relationship('Post', backref=db.backref('comments', lazy=True, cascade='all, delete-orphan'))

@@ -227,7 +227,7 @@
     </div>
 </div>
 
-<!-- 评论弹窗 - 与index.html完全一致 -->
+<!-- 评论弹窗 - 添加录音功能 -->
 <div id="commentModal" class="modal">
     <div class="modal-content comment-modal">
         <div class="modal-header">
@@ -252,10 +252,23 @@
                 {% endif %}
                 <div class="form-group" style="margin-top:1rem;">
                     <label for="commentContent">评论内容:</label>
-                    <textarea id="commentContent" name="content" required rows="4" placeholder="写下您的评论..."></textarea>
+                    <textarea id="commentContent" name="content" rows="4" placeholder="写下您的评论..."></textarea>
                 </div>
+
+                <div id="voiceRecordStatus" class="voice-record-status"></div>
+                <div id="voicePreview" class="voice-preview" style="display:none;"></div>
+
                 <div class="form-actions">
                     <button type="submit" class="submit-btn">🚀 提交评论</button>
+                    <button type="button" id="voiceRecordBtn"
+                        class="mic-emoji-btn"
+                        oncontextmenu="return false;"
+                        onmousedown="startRecording()"
+                        onmouseup="stopRecording()"
+                        onmouseleave="stopRecording()"
+                        ontouchstart="startRecording()"
+                        ontouchend="stopRecording()"
+                        ontouchcancel="stopRecording()">🎙️ 长按录音</button>
                     <button type="button" onclick="closeCommentModal()" class="cancel-btn">取消</button>
                 </div>
             </form>
@@ -478,18 +491,18 @@
 }
 
 .post-tags {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
 
-        .tag {
-            background: linear-gradient(135deg,#FDC2CC 0%, #FFF1F3 100%);
-            color: white;
-            padding: 0.3rem 0.8rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-        }
+.tag {
+    background: linear-gradient(135deg,#FDC2CC 0%, #FFF1F3 100%);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+}
 
 /* 弹窗中的标签样式 - 修改为与index.html完全一致 */
 .modal-tags .tag {
@@ -685,189 +698,6 @@
     color: #666; 
 }
 
-/* 移动端评论优化 - 与index.html完全一致 */
-@media (max-width: 768px) {
-    /* 评论项整体优化 */
-    .comment-item {
-        padding: 8px 10px !important;  /* 减小内边距 */
-        margin-bottom: 6px !important;  /* 减小底部间距 */
-        border-left-width: 2px !important;  /* 稍细的左边框 */
-    }
-    
-    /* 评论头部优化 */
-    .comment-header {
-        margin-bottom: 4px !important;  /* 减小头部底部间距 */
-    }
-    
-    /* 评论作者区域优化 */
-    .comment-header > div:first-child {
-        gap: 3px !important;  /* 减小作者区域元素间距 */
-    }
-    
-    /* 评论头像优化 */
-    .comment-avatar {
-        width: 22px !important;  /* 稍小的头像 */
-        height: 22px !important;
-        margin-right: 2px !important;
-    }
-    
-    .comment-avatar-text {
-        font-size: 0.7rem !important;
-    }
-    
-    /* 评论作者名称优化 */
-    .comment-author {
-        font-size: 11px !important;  /* 稍小的字体 */
-        margin-right: 3px !important;
-    }
-    
-    /* 评论日期优化 */
-    .comment-date {
-        font-size: 10px !important;  /* 更小的日期字体 */
-    }
-    
-    /* 管理员图标优化 */
-    .comment-author img[alt="大V"] {
-        height: 1.2em !important;  /* 稍小的管理员图标 */
-        top: -2px !important;
-    }
-    
-    /* 评论内容优化 */
-    .comment-content {
-        font-size: 13px !important;  /* 稍小的正文字体 */
-        line-height: 1.4 !important;  /* 减小行高 */
-        margin-bottom: 6px !important;  /* 减小底部间距 */
-        padding-left: 2px !important;
-    }
-    
-    /* 评论操作按钮区域优化 */
-    .comment-actions {
-        gap: 2px !important;  /* 减小按钮间距 */
-    }
-    
-    .comment-actions button {
-        padding: 3px 6px !important;  /* 减小按钮内边距 */
-        font-size: 10px !important;  /* 更小的按钮字体 */
-    }
-    
-    /* 评论按钮图标优化 */
-    .comment-edit-btn, .comment-delete-btn {
-        font-size: 10px !important;
-    }
-    
-    /* 编辑/删除图标大小调整 */
-    .comment-edit-btn:before, .comment-delete-btn:before {
-        font-size: 11px !important;
-    }
-    
-    /* 无评论提示优化 */
-    .no-comments {
-        padding: 12px !important;  /* 减小内边距 */
-        font-size: 13px !important;
-    }
-    
-    /* 评论标题优化 */
-    .comments-title {
-        margin-bottom: 10px !important;  /* 减小底部间距 */
-        font-size: 14px !important;
-    }
-    
-    /* 评论列表容器优化 */
-    .comments-list {
-        max-height: 250px !important;  /* 稍微减小最大高度 */
-    }
-    
-    /* 评论弹窗中的用户信息优化 */
-    .comment-user-info {
-        padding: 6px 8px !important;  /* 减小内边距 */
-        gap: 6px !important;
-        margin-bottom: 8px !important;
-    }
-    
-    .comment-user-avatar {
-        width: 30px !important;  /* 稍小的头像 */
-        height: 30px !important;
-    }
-    
-    .comment-username {
-        font-size: 12px !important;  /* 稍小的字体 */
-    }
-    
-    /* 评论表单优化 */
-    .form-group {
-        margin-bottom: 12px !important;  /* 减小底部间距 */
-    }
-    
-    .form-group label {
-        margin-bottom: 4px !important;  /* 减小标签底部间距 */
-        font-size: 13px !important;
-    }
-    
-    .form-group textarea {
-        padding: 8px !important;  /* 减小内边距 */
-        font-size: 13px !important;
-        min-height: 70px !important;  /* 减小最小高度 */
-    }
-    
-    /* 表单按钮优化 */
-    .form-actions {
-        gap: 8px !important;  /* 减小按钮间距 */
-    }
-    
-    .submit-btn, .cancel-btn {
-        padding: 8px 12px !important;  /* 减小按钮内边距 */
-        font-size: 13px !important;
-    }
-    
-    /* 评论模态框内容优化 */
-    .comment-modal .modal-body {
-        padding: 15px !important;  /* 减小模态框内边距 */
-    }
-    
-    /* 评论模态框头部优化 */
-    .comment-modal .modal-header {
-        padding: 12px 15px !important;  /* 减小头部内边距 */
-    }
-    
-    .comment-modal .modal-header h3 {
-        font-size: 16px !important;  /* 稍小的标题 */
-    }
-    
-    .comment-modal .close {
-        font-size: 24px !important;  /* 稍小的关闭按钮 */
-    }
-}
-
-/* 针对小屏手机的进一步优化 */
-@media (max-width: 480px) {
-    .comment-item {
-        padding: 6px 8px !important;
-    }
-    
-    .comment-content {
-        font-size: 12px !important;
-        line-height: 1.3 !important;
-    }
-    
-    .comment-actions button {
-        padding: 2px 5px !important;
-        font-size: 9px !important;
-    }
-    
-    .comment-author {
-        font-size: 10px !important;
-    }
-    
-    .comment-date {
-        font-size: 9px !important;
-    }
-    
-    .comment-avatar {
-        width: 20px !important;
-        height: 20px !important;
-    }
-}
-
 .jump-input { 
     display: flex; 
     align-items: center; 
@@ -988,7 +818,6 @@
     flex-wrap: wrap; 
     gap: 5px; 
 }
-/* 弹窗中的标签样式 - 已修改为与index.html完全一致 */
 .modal-tags .tag { 
     background: #f0f2ff; 
     color: #667eea; 
@@ -1299,6 +1128,95 @@
     font-weight: bold;
 }
 
+/* 录音相关样式 - 完全照搬 index.html */
+.mic-emoji-btn {
+    background: linear-gradient(135deg, #ff6b8a, #ff4d6d);
+    border: none;
+    border-radius: 24px;
+    color: #fff;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 16px;
+    line-height: 1.4;
+    vertical-align: middle;
+    transition: transform 0.1s, background 0.2s, box-shadow 0.1s;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    box-shadow: 0 2px 8px rgba(255,77,109,0.3);
+    white-space: nowrap;
+}
+.mic-emoji-btn:active,
+.mic-emoji-btn.recording {
+    background: linear-gradient(135deg, #e63950, #c0002a);
+    transform: scale(0.96);
+    box-shadow: 0 1px 4px rgba(255,77,109,0.5);
+    animation: mic-pulse 0.6s infinite alternate;
+}
+@keyframes mic-pulse {
+    from { transform: scale(1); }
+    to   { transform: scale(1.3); }
+}
+.voice-record-status {
+    font-size: 0.82rem;
+    color: #f87171;
+    min-height: 18px;
+    margin-bottom: 2px;
+    text-align: center;
+}
+.voice-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(253,194,204,0.12);
+    border-radius: 20px;
+    padding: 6px 12px;
+    margin: 6px 0;
+}
+.voice-preview-play {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #FDC2CC;
+    border: none; color: #fff;
+    font-size: 0.9rem; cursor: pointer;
+}
+.voice-preview-duration { color: #999; font-size: 0.82rem; }
+.voice-preview-del { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; }
+/* 评论列表语音气泡 */
+.voice-bubble {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(253,194,204,0.15);
+    border: 1px solid rgba(253,194,204,0.35);
+    border-radius: 18px; padding: 7px 14px;
+    cursor: pointer; min-width: 90px; max-width: 200px;
+    transition: background 0.2s; user-select: none;
+}
+.voice-bubble:hover { background: rgba(253,194,204,0.28); }
+.voice-bubble.playing { background: rgba(253,194,204,0.35); }
+.voice-bubble-play {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #FDC2CC; border: none; color: #fff;
+    font-size: 0.85rem; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0; pointer-events: none;
+}
+.voice-wave { display: flex; align-items: center; gap: 2px; flex: 1; }
+.voice-wave span { display: inline-block; width: 3px; border-radius: 2px; background: #FDC2CC; opacity: 0.7; }
+.voice-wave span:nth-child(1){height:6px} .voice-wave span:nth-child(2){height:12px}
+.voice-wave span:nth-child(3){height:8px}  .voice-wave span:nth-child(4){height:16px}
+.voice-wave span:nth-child(5){height:10px} .voice-wave span:nth-child(6){height:6px}
+.voice-bubble.playing .voice-wave span { animation: wave-anim 0.8s infinite ease-in-out; }
+.voice-bubble.playing .voice-wave span:nth-child(1){animation-delay:0s}
+.voice-bubble.playing .voice-wave span:nth-child(2){animation-delay:0.1s}
+.voice-bubble.playing .voice-wave span:nth-child(3){animation-delay:0.2s}
+.voice-bubble.playing .voice-wave span:nth-child(4){animation-delay:0.15s}
+.voice-bubble.playing .voice-wave span:nth-child(5){animation-delay:0.25s}
+.voice-bubble.playing .voice-wave span:nth-child(6){animation-delay:0.05s}
+@keyframes wave-anim {
+    0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.8)}
+}
+.voice-bubble-duration { font-size: 0.78rem; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+
 .form-group { 
     margin-bottom: 20px; 
 }
@@ -1508,6 +1426,23 @@
     let currentDeletePostId = null;
     let currentPostId = null;
     let currentCommentId = null;
+    // ===== 语音评论变量 =====
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordingStartTime = null;
+    let recordingTimer = null;
+    let recordedBlob = null;
+    let recordedDuration = 0;
+    let previewAudio = null;
+    let currentVoicePath = null;
+    let currentVoiceDuration = 0;
+
+    let currentBubbleAudio = null;
+    let currentBubbleId = null;
+    let audioContext = null;
+    let recordingStream = null;
+    let pcmChunks = [];
+    let sampleRate = 44100;
 
     // 分页跳转函数 - 适配用户个人页面
     function jumpToPage(userId) {
@@ -1535,132 +1470,147 @@
         }
     });
 
-    function openPostModalSafe(element) {
-        try {
-            const postData = JSON.parse(element.dataset.post);
-            if (!postData || !postData.id) throw new Error('文章数据无效');
-            currentPostId = parseInt(postData.id);
-            openPostModal(postData.id, postData.title, postData.content, postData.images, postData.tags, postData.date, postData.author, postData.author_id);
-            loadComments(currentPostId);
-        } catch (e) {
-            console.error('解析文章数据失败:', e);
-            alert('无法打开文章详情，请刷新页面重试');
-        }
-    }
     function fetchAuthorInfo(authorId, authorName, authorInfoElement) {
-    fetch(`/get_user_info/${authorId}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                // 创建头像HTML
-                let avatarHtml = '';
-                if (data.avatar_path) {
-                    avatarHtml = `<div class="comment-avatar" style="margin-right: 8px;"><img src="/${data.avatar_path}" alt="头像" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;"></div>`;
+        fetch(`/get_user_info/${authorId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // 创建头像HTML
+                    let avatarHtml = '';
+                    if (data.avatar_path) {
+                        avatarHtml = `<div class="comment-avatar" style="margin-right: 8px;"><img src="/${data.avatar_path}" alt="头像" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;"></div>`;
+                    } else {
+                        avatarHtml = `<div class="comment-avatar" style="margin-right: 8px;"><span class="comment-avatar-text" style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #FDC2CC, #FFF1F3); border-radius: 50%; color: white; font-weight: bold;">${authorName[0]}</span></div>`;
+                    }
+                    
+                    // 管理员图标
+                    const adminIconHtml = data.is_admin 
+                        ? `<img src="/static/img/dav.png" alt="大V" style="height: 1.2em; width: auto; vertical-align: middle; margin-left: 4px; display: inline-block;" onerror="this.style.display='none'">`
+                        : '';
+                    
+                    // 更新authorInfo内容
+                    authorInfoElement.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+                            ${avatarHtml}
+                            <a href="/user/${authorId}" style="color:#FDC2CC; text-decoration:none; font-size:0.9rem; display: flex; align-items: center;">
+                                ${authorName}${adminIconHtml}
+                            </a>
+                        </div>
+                    `;
+                    authorInfoElement.style.display = 'flex';
+                    authorInfoElement.style.alignItems = 'center';
+                    authorInfoElement.style.gap = '6px';
                 } else {
-                    avatarHtml = `<div class="comment-avatar" style="margin-right: 8px;"><span class="comment-avatar-text" style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #FDC2CC, #FFF1F3); border-radius: 50%; color: white; font-weight: bold;">${authorName[0]}</span></div>`;
+                    // 降级显示：只显示名字
+                    authorInfoElement.innerHTML = `<a href="/user/${authorId}" style="color:#FDC2CC; text-decoration:none; font-size:0.9rem;">👤 ${authorName}</a>`;
+                    authorInfoElement.style.display = 'flex';
+                    authorInfoElement.style.alignItems = 'center';
+                    authorInfoElement.style.gap = '6px';
                 }
-                
-                // 管理员图标
-                const adminIconHtml = data.is_admin 
-                    ? `<img src="/static/img/dav.png" alt="大V" style="height: 1.2em; width: auto; vertical-align: middle; margin-left: 4px; display: inline-block;" onerror="this.style.display='none'">`
-                    : '';
-                
-                // 更新authorInfo内容
-                authorInfoElement.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
-                        ${avatarHtml}
-                        <a href="/user/${authorId}" style="color:#FDC2CC; text-decoration:none; font-size:0.9rem; display: flex; align-items: center;">
-                            ${authorName}${adminIconHtml}
-                        </a>
-                    </div>
-                `;
-                authorInfoElement.style.display = 'flex';
-                authorInfoElement.style.alignItems = 'center';
-                authorInfoElement.style.gap = '6px';
-            } else {
-                // 降级显示：只显示名字
+            })
+            .catch(err => {
+                console.error('获取作者信息失败:', err);
+                // 降级显示
                 authorInfoElement.innerHTML = `<a href="/user/${authorId}" style="color:#FDC2CC; text-decoration:none; font-size:0.9rem;">👤 ${authorName}</a>`;
                 authorInfoElement.style.display = 'flex';
                 authorInfoElement.style.alignItems = 'center';
                 authorInfoElement.style.gap = '6px';
-            }
-        })
-        .catch(err => {
-            console.error('获取作者信息失败:', err);
-            // 降级显示
-            authorInfoElement.innerHTML = `<a href="/user/${authorId}" style="color:#FDC2CC; text-decoration:none; font-size:0.9rem;">👤 ${authorName}</a>`;
-            authorInfoElement.style.display = 'flex';
-            authorInfoElement.style.alignItems = 'center';
-            authorInfoElement.style.gap = '6px';
-        });
-}
+            });
+    }
+
     function openPostModal(postId, title, content, imagePaths, tags, date, author, authorId) {
         document.getElementById('modalTitle').textContent = title;
         document.getElementById('modalContent').textContent = content;
-        document.getElementById('modalDate').innerHTML = '<img src="/static/img/calendar.png" alt="日历" style="width:1.2em;height:1.2em;vertical-align:middle;" onerror="this.style.display=\'none\'"> ' + date;
-        
-        // 显示作者信息 - 修改为包含头像和管理员图标
+        document.getElementById('modalDate').innerHTML = 
+            '<img src="/static/img/calendar.png" alt="日历" style="width: 1.2em; height: 1.2em; vertical-align: middle;" onerror="this.style.display=\'none\'"> ' + date;
+
+        // 显示作者信息
         const authorInfo = document.getElementById('modalAuthorInfo');
         if (author && authorId) {
-            // 获取作者头像（需要从后端获取，这里先尝试从已有的数据中获取）
-            // 由于当前数据中没有头像信息，我们需要异步获取
             fetchAuthorInfo(authorId, author, authorInfo);
-        } else { 
-            authorInfo.style.display = 'none'; 
+        } else {
+            authorInfo.style.display = 'none';
         }
-        
+
         const tagsContainer = document.getElementById('modalTags');
         tagsContainer.innerHTML = '';
-        if (tags) { 
-            tags.split(',').forEach(tag => { 
-                if (tag.trim()) { 
-                    const el = document.createElement('span'); 
-                    el.className = 'tag'; 
-                    el.textContent = tag.trim(); 
-                    tagsContainer.appendChild(el); 
-                } 
-            }); 
+        if (tags) {
+            tags.split(',').forEach(tag => {
+                if (tag.trim()) {
+                    const tagElement = document.createElement('span');
+                    tagElement.className = 'tag';
+                    tagElement.textContent = tag.trim();
+                    tagsContainer.appendChild(tagElement);
+                }
+            });
         }
-        
+
         currentImages = [];
         if (imagePaths) {
-            if (Array.isArray(imagePaths)) currentImages = imagePaths;
-            else if (typeof imagePaths === 'string') { 
-                try { currentImages = JSON.parse(imagePaths); } 
-                catch(e) { currentImages = []; } 
+            if (Array.isArray(imagePaths)) {
+                currentImages = imagePaths;
+            } else if (typeof imagePaths === 'string') {
+                try { currentImages = JSON.parse(imagePaths); } catch (e) { currentImages = []; }
             }
         }
-        
+
         const imageGrid = document.getElementById('imageGrid');
         imageGrid.innerHTML = '';
+
         if (currentImages.length > 0) {
             const displayCount = Math.min(currentImages.length, 9);
             const showMore = currentImages.length > 9;
             for (let i = 0; i < displayCount; i++) {
                 const img = document.createElement('img');
-                img.src = '/' + currentImages[i]; 
+                img.src = '/' + currentImages[i];
                 img.alt = `图片 ${i + 1}`;
+
                 const container = document.createElement('div');
                 container.style.cssText = 'position:relative;display:inline-block;width:100%;height:100%;';
+
                 if (i === 8 && showMore) {
                     const overlay = document.createElement('div');
                     overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:24px;border-radius:8px;';
                     overlay.textContent = `+${currentImages.length - 9}`;
                     img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-                    container.appendChild(img); 
+                    container.appendChild(img);
                     container.appendChild(overlay);
                 } else {
                     img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
                     container.appendChild(img);
                 }
+
                 container.onclick = () => openImagePreview(i);
                 imageGrid.appendChild(container);
             }
-        } else { 
-            imageGrid.innerHTML = '<p class="no-images">暂无图片</p>'; 
+        } else {
+            imageGrid.innerHTML = '<p class="no-images">暂无图片</p>';
         }
+
         document.getElementById('postModal').style.display = 'block';
         document.body.style.overflow = 'hidden';
+    }
+
+    function openPostModalSafe(element) {
+        try {
+            const postData = JSON.parse(element.dataset.post);
+            if (!postData || !postData.id) throw new Error('文章数据无效');
+            currentPostId = parseInt(postData.id);
+            openPostModal(
+                postData.id,
+                postData.title,
+                postData.content,
+                postData.images,
+                postData.tags,
+                postData.date,
+                postData.author,
+                postData.author_id
+            );
+            loadComments(currentPostId);
+        } catch (e) {
+            console.error('解析文章数据失败:', e);
+            alert('无法打开文章详情，请刷新页面重试');
+        }
     }
 
     function closePostModal() { 
@@ -1739,12 +1689,14 @@
         document.getElementById('commentPostId').value = currentPostId;
         document.getElementById('commentId').value = commentId || '';
         document.getElementById('commentContent').value = content;
-        document.getElementById('commentModalTitle').textContent = commentId ? '编辑评论' : `为《${postTitle}》添加评论`;
+        const title = commentId ? '编辑评论' : `为《${postTitle}》添加评论`;
+        document.getElementById('commentModalTitle').textContent = title;
         document.getElementById('commentModal').style.display = 'block'; 
         document.body.style.overflow = 'hidden';
     }
 
-    function closeCommentModal() { 
+    function closeCommentModal() {
+        resetVoiceState();
         document.getElementById('commentModal').style.display = 'none'; 
         document.body.style.overflow = 'auto'; 
         currentCommentId = null; 
@@ -1757,16 +1709,20 @@
             .then(res => res.json())
             .then(data => {
                 const commentsList = document.getElementById('commentsList');
-                document.getElementById('commentCount').textContent = data.comments.length;
+                const commentCount = document.getElementById('commentCount');
+                commentCount.textContent = data.comments.length;
                 if (data.comments.length === 0) {
                     commentsList.innerHTML = '<div class="no-comments">暂无评论！</div>';
                     return;
                 }
                 commentsList.innerHTML = data.comments.map(comment => {
                     // 头像 HTML
-                    let avatarHtml = comment.author_avatar
-                        ? `<div class="comment-avatar"><img src="/${comment.author_avatar}" alt="头像"></div>`
-                        : `<div class="comment-avatar"><span class="comment-avatar-text">${comment.author ? comment.author[0] : '?'}</span></div>`;
+                    let avatarHtml = '';
+                    if (comment.author_avatar) {
+                        avatarHtml = `<div class="comment-avatar"><img src="/${comment.author_avatar}" alt="头像"></div>`;
+                    } else {
+                        avatarHtml = `<div class="comment-avatar"><span class="comment-avatar-text">${comment.author ? comment.author[0] : '?'}</span></div>`;
+                    }
 
                     // 判断是否为管理员
                     const isAdmin = comment.is_admin || false;
@@ -1779,13 +1735,24 @@
                     // 编辑/删除按钮（仅当can_edit为true）
                     let actionsHtml = '';
                     if (comment.can_edit) {
-                        actionsHtml = `
-                            <div class="comment-actions" style="display:flex; flex-direction:column; gap:4px;">
-                                <button class="comment-edit-btn" onclick="editComment(${comment.id}, \`${comment.content.replace(/`/g, '\\`')}\`)">✏️ 编辑</button>
-                                <button class="comment-delete-btn" onclick="deleteComment(${comment.id})">🗑️ 删除</button>
-                            </div>`;
+                        // 判断是否为语音评论
+                        const isVoiceComment = comment.voice_path ? true : false;
+                        
+                        if (isVoiceComment) {
+                            // 语音评论只显示删除按钮
+                            actionsHtml = `
+                                <div class="comment-actions" style="display:flex; flex-direction:column; gap:4px;">
+                                    <button class="comment-delete-btn" onclick="deleteComment(${comment.id})">🗑️ 删除</button>
+                                </div>`;
+                        } else {
+                            // 文字评论显示编辑和删除按钮
+                            actionsHtml = `
+                                <div class="comment-actions" style="display:flex; flex-direction:column; gap:4px;">
+                                    <button class="comment-edit-btn" onclick="editComment(${comment.id}, \`${comment.content.replace(/`/g, '\\`')}\`)">✏️ 编辑</button>
+                                    <button class="comment-delete-btn" onclick="deleteComment(${comment.id})">🗑️ 删除</button>
+                                </div>`;
+                        }
                     }
-
                     // 作者链接（带管理员图标）
                     let authorHtml = comment.author_id
                         ? `<a href="/user/${comment.author_id}" style="color:#FDC2CC;text-decoration:none;" class="comment-author">${comment.author}${adminIconHtml}</a>`
@@ -1801,12 +1768,16 @@
                                 </div>
                                 ${actionsHtml}
                             </div>
-                            <div class="comment-content">${comment.content}</div>
+                            <div class="comment-content">
+                                ${comment.voice_path ? renderVoiceBubble(comment.voice_path, comment.voice_duration || 0, comment.id) : comment.content}
+                            </div>
                         </div>`;
                 }).join('');
             })
-            .catch(() => { 
-                document.getElementById('commentsList').innerHTML = '<div class="no-comments" style="color:#dc3545;">加载评论失败</div>'; 
+            .catch(err => {
+                console.error('加载评论失败:', err);
+                const commentsList = document.getElementById('commentsList');
+                if (commentsList) commentsList.innerHTML = '<div class="no-comments" style="color:#dc3545;">加载评论失败</div>';
             });
     }
 
@@ -1835,7 +1806,7 @@
         }
     }
 
-    document.getElementById('commentForm').addEventListener('submit', function(e) {
+    document.getElementById('commentForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(this);
         const postId = parseInt(formData.get('post_id'));
@@ -1843,15 +1814,43 @@
             showMessage('文章信息错误', 'error'); 
             return; 
         }
-        const content = formData.get('content').trim();
-        if (!content) { 
-            showMessage('评论内容不能为空', 'warning'); 
-            return; 
-        }
-        const data = { post_id: postId, content: content };
+
         const commentId = formData.get('comment_id');
         const url = commentId ? `/edit_comment/${commentId}` : '/add_comment';
         const isEdit = !!commentId;
+
+        let voicePath = null;
+        let voiceDuration = null;
+        let textContent = formData.get('content').trim();
+
+        // 有录音则先上传语音
+        if (recordedBlob) {
+            const vForm = new FormData();
+            vForm.append('voice', recordedBlob, 'voice.wav');
+            vForm.append('duration', recordedDuration);
+            try {
+                const res = await fetch('/upload_voice', { method: 'POST', body: vForm });
+                const vData = await res.json();
+                if (!vData.success) { 
+                    showMessage('语音上传失败: ' + vData.message, 'error'); 
+                    return; 
+                }
+                voicePath = vData.voice_path;
+                voiceDuration = vData.duration;
+                if (!textContent) textContent = '[语音评论]';
+            } catch(err) {
+                showMessage('语音上传失败，请重试', 'error');
+                return;
+            }
+        } else {
+            if (!textContent) { 
+                showMessage('评论内容不能为空', 'warning'); 
+                return; 
+            }
+        }
+
+        const data = { post_id: postId, content: textContent, voice_path: voicePath, voice_duration: voiceDuration };
+
         fetch(url, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
@@ -1907,6 +1906,274 @@
         else if (event.target === deleteModal) closeDeleteModal();
         else if (event.target === commentModal) closeCommentModal();
     };
+
+    // ===== 语音评论功能 =====
+    document.addEventListener('touchstart', function(e) {
+        var btn = e.target && (e.target.id === 'voiceRecordBtn' ? e.target : (e.target.closest && e.target.closest('#voiceRecordBtn')));
+        if (btn) {
+            e.preventDefault();
+            startRecording();
+        }
+    }, { passive: false, capture: true });
+    
+    document.addEventListener('mouseup', function() { stopRecording(); });
+    document.addEventListener('mouseleave', function() { stopRecording(); });
+    document.addEventListener('contextmenu', function(e) {
+        if (e.target && e.target.id === 'voiceRecordBtn') e.preventDefault();
+    });
+
+    function startRecording() {
+        if (audioContext) return;
+        audioContext = 'pending';
+        clearVoiceRecording();
+
+        var isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (!isSecure) {
+            audioContext = null;
+            document.getElementById('voiceRecordStatus').textContent = '⚠️ 语音功能需要 HTTPS 环境';
+            return;
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            audioContext = null;
+            document.getElementById('voiceRecordStatus').textContent = '⚠️ 当前浏览器不支持录音';
+            return;
+        }
+
+        function doRecord(stream) {
+            if (audioContext !== 'pending') return;
+
+            recordingStream = stream;
+            var ACtor = window.AudioContext || window.webkitAudioContext;
+            var ctx = new ACtor();
+            audioContext = ctx;
+            sampleRate = ctx.sampleRate;
+
+            var source = ctx.createMediaStreamSource(stream);
+            var processor = ctx.createScriptProcessor(4096, 1, 1);
+            pcmChunks = [];
+            processor.onaudioprocess = function(ev) {
+                pcmChunks.push(new Float32Array(ev.inputBuffer.getChannelData(0)));
+            };
+            source.connect(processor);
+            processor.connect(ctx.destination);
+            ctx._processor = processor;
+            ctx._source = source;
+
+            recordingStartTime = Date.now();
+            var btn = document.getElementById('voiceRecordBtn');
+            if (btn) btn.classList.add('recording');
+            document.getElementById('voiceRecordStatus').textContent = '🔴 录音中...';
+            recordingTimer = setInterval(function() {
+                var sec = Math.round((Date.now() - recordingStartTime) / 1000);
+                document.getElementById('voiceRecordStatus').textContent = '🔴 录音中... ' + sec + 's';
+                if (sec >= 60) stopRecording();
+            }, 500);
+        }
+
+        document.getElementById('voiceRecordStatus').textContent = '🎙️ 请求麦克风权限...';
+        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+            .then(function(stream) {
+                if (audioContext !== 'pending') {
+                    stream.getTracks().forEach(track => track.stop());
+                    return;
+                }
+                doRecord(stream);
+            })
+            .catch(function(err) {
+                audioContext = null;
+                var msg = err.name === 'NotAllowedError' ? '请允许麦克风权限后重试'
+                        : err.name === 'NotFoundError'   ? '未检测到麦克风设备'
+                        : '麦克风错误：' + err.message;
+                document.getElementById('voiceRecordStatus').textContent = '⚠️ ' + msg;
+            });
+    }
+
+    function stopRecording() {
+        if (audioContext === 'pending') { 
+            audioContext = null; 
+            return; 
+        }
+        if (!audioContext || !recordingStream) return;
+        
+        if (recordingStartTime && Date.now() - recordingStartTime < 300) {
+            clearRecordingResources();
+            return;
+        }
+
+        var ctx = audioContext;
+        var chunks = pcmChunks;
+        var sr = sampleRate;
+        var startTime = recordingStartTime;
+        
+        clearRecordingResources();
+
+        recordedDuration = Math.round((Date.now() - startTime) / 1000) || 1;
+
+        var totalLen = 0;
+        for (var i = 0; i < chunks.length; i++) totalLen += chunks[i].length;
+        if (totalLen === 0) {
+            document.getElementById('voiceRecordStatus').textContent = '⚠️ 录音太短，请重试';
+            return;
+        }
+        var merged = new Float32Array(totalLen);
+        var offset = 0;
+        for (var i = 0; i < chunks.length; i++) { merged.set(chunks[i], offset); offset += chunks[i].length; }
+        recordedBlob = encodeWAV(merged, sr);
+        document.getElementById('voiceRecordStatus').textContent = '';
+        
+        submitVoiceComment();
+    }
+
+    function clearRecordingResources() {
+        if (audioContext) {
+            try { 
+                if (audioContext._processor) audioContext._processor.onaudioprocess = null;
+                if (audioContext._source) audioContext._source.disconnect();
+                if (audioContext._processor) audioContext._processor.disconnect();
+                audioContext.close().catch(function(){}); 
+            } catch(e2) {}
+            audioContext = null;
+        }
+        
+        if (recordingStream) {
+            recordingStream.getTracks().forEach(track => track.stop());
+            recordingStream = null;
+        }
+        
+        pcmChunks = [];
+        clearInterval(recordingTimer);
+        
+        var btn = document.getElementById('voiceRecordBtn');
+        if (btn) btn.classList.remove('recording');
+        
+        recordingStartTime = null;
+    }
+
+    function encodeWAV(samples, sr) {
+        var buf = new ArrayBuffer(44 + samples.length * 2);
+        var view = new DataView(buf);
+        function ws(off, str) { for (var i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); }
+        ws(0, 'RIFF');
+        view.setUint32(4, 36 + samples.length * 2, true);
+        ws(8, 'WAVE'); ws(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sr, true);
+        view.setUint32(28, sr * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        ws(36, 'data');
+        view.setUint32(40, samples.length * 2, true);
+        var idx = 44;
+        for (var s = 0; s < samples.length; s++) {
+            var v = samples[s] < -1 ? -1 : samples[s] > 1 ? 1 : samples[s];
+            view.setInt16(idx, v < 0 ? v * 0x8000 : v * 0x7FFF, true);
+            idx += 2;
+        }
+        return new Blob([buf], { type: 'audio/wav' });
+    }
+
+    function submitVoiceComment() {
+        var postId = parseInt(document.getElementById('commentPostId').value);
+        if (!postId || isNaN(postId)) { 
+            showMessage('请先打开评论框', 'error'); 
+            clearRecordingResources();
+            return; 
+        }
+        if (!recordedBlob) { 
+            showMessage('没有录音内容', 'error'); 
+            clearRecordingResources();
+            return; 
+        }
+
+        document.getElementById('voiceRecordStatus').textContent = '上传中...';
+
+        var vForm = new FormData();
+        vForm.append('voice', recordedBlob, 'voice.wav');
+        vForm.append('duration', recordedDuration);
+
+        fetch('/upload_voice', { method: 'POST', body: vForm })
+        .then(function(res) { return res.json(); })
+        .then(function(vData) {
+            if (!vData.success) { 
+                showMessage('语音上传失败: ' + vData.message, 'error'); 
+                clearRecordingResources();
+                return; 
+            }
+            var data = {
+                post_id: postId,
+                content: '[语音评论]',
+                voice_path: vData.voice_path,
+                voice_duration: vData.duration
+            };
+            return fetch('/add_comment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                clearRecordingResources();
+                clearVoiceRecording();
+                closeCommentModal();
+                loadComments(currentPostId);
+                showMessage('语音评论发送成功！', 'success');
+            } else {
+                showMessage(data.message || '提交失败', 'error');
+                document.getElementById('voiceRecordStatus').textContent = '';
+                clearRecordingResources();
+            }
+        })
+        .catch(function() {
+            showMessage('提交失败，请重试', 'error');
+            document.getElementById('voiceRecordStatus').textContent = '';
+            clearRecordingResources();
+        });
+    }
+
+    function renderVoiceBubble(voicePath, duration, commentId) {
+        return `<div class="voice-bubble" id="vbubble-${commentId}" onclick="playVoiceBubble('/${voicePath}', ${commentId})">
+            <div class="voice-bubble-play">▶</div>
+            <div class="voice-wave"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <span class="voice-bubble-duration">${duration || 0}"</span>
+        </div>`;
+    }
+
+    function playVoiceBubble(url, commentId) {
+        if (currentBubbleAudio && !currentBubbleAudio.paused) {
+            currentBubbleAudio.pause();
+            currentBubbleAudio.currentTime = 0;
+            const oldBubble = document.getElementById('vbubble-' + currentBubbleId);
+            if (oldBubble) { oldBubble.classList.remove('playing'); oldBubble.querySelector('.voice-bubble-play').textContent = '▶'; }
+            if (currentBubbleId === commentId) { currentBubbleAudio = null; currentBubbleId = null; return; }
+        }
+        const bubble = document.getElementById('vbubble-' + commentId);
+        const audio = new Audio(url);
+        currentBubbleAudio = audio; currentBubbleId = commentId;
+        audio.play();
+        if (bubble) { bubble.classList.add('playing'); bubble.querySelector('.voice-bubble-play').textContent = '⏸'; }
+        audio.onended = () => {
+            if (bubble) { bubble.classList.remove('playing'); bubble.querySelector('.voice-bubble-play').textContent = '▶'; }
+            currentBubbleAudio = null; currentBubbleId = null;
+        };
+    }
+
+    function clearVoiceRecording() {
+        recordedBlob = null; recordedDuration = 0; currentVoicePath = null; currentVoiceDuration = 0;
+        if (previewAudio) { previewAudio.pause(); previewAudio = null; }
+        var preview = document.getElementById('voicePreview');
+        if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+        var status = document.getElementById('voiceRecordStatus');
+        if (status) status.textContent = '';
+    }
+
+    function resetVoiceState() {
+        clearVoiceRecording();
+        clearRecordingResources();
+    }
 
     // 页面加载优化
     (function() {

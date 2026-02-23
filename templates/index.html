@@ -252,8 +252,20 @@
                                   placeholder="写下您的评论..."></textarea>
                     </div>
 
+                    <div id="voiceRecordStatus" class="voice-record-status"></div>
+                    <div id="voicePreview" class="voice-preview" style="display:none;"></div>
+
                     <div class="form-actions">
                         <button type="submit" class="submit-btn">🚀 提交评论</button>
+                        <button type="button" id="voiceRecordBtn"
+                        class="mic-emoji-btn"
+                        oncontextmenu="return false;"
+                        onmousedown="startRecording()"
+                        onmouseup="stopRecording()"
+                        onmouseleave="stopRecording()"
+                        ontouchstart="startRecording()"
+                        ontouchend="stopRecording()"
+                        ontouchcancel="stopRecording()">🎙️ 长按录音</button>
                         <button type="button" onclick="closeCommentModal()" class="cancel-btn">取消</button>
                     </div>
                 </form>
@@ -1168,6 +1180,94 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
 @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 .profile-name { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+
+.mic-emoji-btn {
+    background: linear-gradient(135deg, #ff6b8a, #ff4d6d);
+    border: none;
+    border-radius: 24px;
+    color: #fff;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 16px;
+    line-height: 1.4;
+    vertical-align: middle;
+    transition: transform 0.1s, background 0.2s, box-shadow 0.1s;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    box-shadow: 0 2px 8px rgba(255,77,109,0.3);
+    white-space: nowrap;
+}
+.mic-emoji-btn:active,
+.mic-emoji-btn.recording {
+    background: linear-gradient(135deg, #e63950, #c0002a);
+    transform: scale(0.96);
+    box-shadow: 0 1px 4px rgba(255,77,109,0.5);
+    animation: mic-pulse 0.6s infinite alternate;
+}
+@keyframes mic-pulse {
+    from { transform: scale(1); }
+    to   { transform: scale(1.3); }
+}
+.voice-record-status {
+    font-size: 0.82rem;
+    color: #f87171;
+    min-height: 18px;
+    margin-bottom: 2px;
+    text-align: center;
+}
+.voice-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(253,194,204,0.12);
+    border-radius: 20px;
+    padding: 6px 12px;
+    margin: 6px 0;
+}
+.voice-preview-play {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #FDC2CC;
+    border: none; color: #fff;
+    font-size: 0.9rem; cursor: pointer;
+}
+.voice-preview-duration { color: #999; font-size: 0.82rem; }
+.voice-preview-del { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; }
+/* 评论列表语音气泡 */
+.voice-bubble {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(253,194,204,0.15);
+    border: 1px solid rgba(253,194,204,0.35);
+    border-radius: 18px; padding: 7px 14px;
+    cursor: pointer; min-width: 90px; max-width: 200px;
+    transition: background 0.2s; user-select: none;
+}
+.voice-bubble:hover { background: rgba(253,194,204,0.28); }
+.voice-bubble.playing { background: rgba(253,194,204,0.35); }
+.voice-bubble-play {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #FDC2CC; border: none; color: #fff;
+    font-size: 0.85rem; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0; pointer-events: none;
+}
+.voice-wave { display: flex; align-items: center; gap: 2px; flex: 1; }
+.voice-wave span { display: inline-block; width: 3px; border-radius: 2px; background: #FDC2CC; opacity: 0.7; }
+.voice-wave span:nth-child(1){height:6px} .voice-wave span:nth-child(2){height:12px}
+.voice-wave span:nth-child(3){height:8px}  .voice-wave span:nth-child(4){height:16px}
+.voice-wave span:nth-child(5){height:10px} .voice-wave span:nth-child(6){height:6px}
+.voice-bubble.playing .voice-wave span { animation: wave-anim 0.8s infinite ease-in-out; }
+.voice-bubble.playing .voice-wave span:nth-child(1){animation-delay:0s}
+.voice-bubble.playing .voice-wave span:nth-child(2){animation-delay:0.1s}
+.voice-bubble.playing .voice-wave span:nth-child(3){animation-delay:0.2s}
+.voice-bubble.playing .voice-wave span:nth-child(4){animation-delay:0.15s}
+.voice-bubble.playing .voice-wave span:nth-child(5){animation-delay:0.25s}
+.voice-bubble.playing .voice-wave span:nth-child(6){animation-delay:0.05s}
+@keyframes wave-anim {
+    0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.8)}
+}
+.voice-bubble-duration { font-size: 0.78rem; color: #aaa; white-space: nowrap; flex-shrink: 0; }
 </style>
 
     <script>
@@ -1176,6 +1276,23 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
         let currentDeletePostId = null;
         let currentPostId = null;
         let currentCommentId = null;
+        // ===== 语音评论变量 =====
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingStartTime = null;
+        let recordingTimer = null;
+        let recordedBlob = null;
+        let recordedDuration = 0;
+        let previewAudio = null;
+        let currentVoicePath = null;
+        let currentVoiceDuration = 0;
+
+        let currentBubbleAudio = null;
+        let currentBubbleId = null;
+        let audioContext = null;
+        let recordingStream = null;
+        let pcmChunks = [];
+        let sampleRate = 44100;
 
         function jumpToPage() {
             const input = document.getElementById('jumpPageInput');
@@ -1388,7 +1505,6 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
             document.getElementById('deleteModal').style.display = 'none';
             document.body.style.overflow = 'auto';
         }
-
         function openCommentModal(postId, postTitle, commentId = null, content = '') {
             if (!postId || isNaN(postId)) { return; }
             currentPostId = parseInt(postId);
@@ -1403,14 +1519,83 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
 
             document.getElementById('commentModal').style.display = 'block';
             document.body.style.overflow = 'hidden';
+            // 移除 initMic() 调用
         }
-
         function closeCommentModal() {
+            resetVoiceState(); // 这个函数已经会调用 clearVoiceRecording() 和 clearRecordingResources()
             document.getElementById('commentModal').style.display = 'none';
             document.body.style.overflow = 'auto';
             currentCommentId = null;
             document.getElementById('commentForm').reset();
         }
+
+// 修改 commentForm 提交处理函数
+document.getElementById('commentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const postId = parseInt(formData.get('post_id'));
+    if (!postId || isNaN(postId)) { showMessage('文章信息错误', 'error'); return; }
+
+    const commentId = formData.get('comment_id');
+    const url = commentId ? `/edit_comment/${commentId}` : '/add_comment';
+    const isEdit = !!commentId;
+
+    let voicePath = null;
+    let voiceDuration = null;
+    let textContent = formData.get('content').trim();
+
+    // 有录音则先上传语音
+    if (recordedBlob) {
+        const vForm = new FormData();
+        vForm.append('voice', recordedBlob, 'voice.wav');
+        vForm.append('duration', recordedDuration);
+        try {
+            const res = await fetch('/upload_voice', { method: 'POST', body: vForm });
+            const vData = await res.json();
+            if (!vData.success) { 
+                showMessage('语音上传失败: ' + vData.message, 'error'); 
+                clearRecordingResources();
+                return; 
+            }
+            voicePath = vData.voice_path;
+            voiceDuration = vData.duration;
+            if (!textContent) textContent = '[语音评论]';
+        } catch(err) {
+            showMessage('语音上传失败，请重试', 'error');
+            clearRecordingResources();
+            return;
+        }
+    } else {
+        if (!textContent) { showMessage('评论内容不能为空', 'warning'); return; }
+    }
+
+    const data = { post_id: postId, content: textContent, voice_path: voicePath, voice_duration: voiceDuration };
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // 成功发送后，释放录音资源
+            clearRecordingResources();
+            clearVoiceRecording();
+            
+            closeCommentModal();
+            loadComments(currentPostId);
+            showMessage(isEdit ? '评论编辑成功！' : '评论添加成功！', 'success');
+        } else {
+            showMessage(data.message || '操作失败', 'error');
+            clearRecordingResources();
+        }
+    })
+    .catch(() => {
+        showMessage('提交失败，请重试', 'error');
+        clearRecordingResources();
+    });
+});
 
         function loadComments(postId) {
             if (!postId || isNaN(postId)) return;
@@ -1444,11 +1629,23 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                             // 编辑/删除按钮（仅当can_edit为true）
                             let actionsHtml = '';
                             if (comment.can_edit) {
-                                actionsHtml = `
-                                    <div class="comment-actions" style="display:flex; flex-direction:column; gap:4px;">
-                                        <button class="comment-edit-btn" onclick="editComment(${comment.id}, \`${comment.content.replace(/`/g, '\\`')}\`)">✏️ 编辑</button>
-                                        <button class="comment-delete-btn" onclick="deleteComment(${comment.id})">🗑️ 删除</button>
-                                    </div>`;
+                                // 判断是否为语音评论
+                                const isVoiceComment = comment.voice_path ? true : false;
+                                
+                                if (isVoiceComment) {
+                                    // 语音评论只显示删除按钮
+                                    actionsHtml = `
+                                        <div class="comment-actions" style="display:flex; flex-direction:column; gap:4px;">
+                                            <button class="comment-delete-btn" onclick="deleteComment(${comment.id})">🗑️ 删除</button>
+                                        </div>`;
+                                } else {
+                                    // 文字评论显示编辑和删除按钮
+                                    actionsHtml = `
+                                        <div class="comment-actions" style="display:flex; flex-direction:column; gap:4px;">
+                                            <button class="comment-edit-btn" onclick="editComment(${comment.id}, \`${comment.content.replace(/`/g, '\\`')}\`)">✏️ 编辑</button>
+                                            <button class="comment-delete-btn" onclick="deleteComment(${comment.id})">🗑️ 删除</button>
+                                        </div>`;
+                                }
                             }
 
                             // 作者链接（带管理员图标）
@@ -1466,7 +1663,9 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                                         </div>
                                         ${actionsHtml}
                                     </div>
-                                    <div class="comment-content">${comment.content}</div>
+                                    <div class="comment-content">
+                                        ${comment.voice_path ? renderVoiceBubble(comment.voice_path, comment.voice_duration || 0, comment.id) : comment.content}
+                                    </div>
                                 </div>`;
                         }).join('');
                     }
@@ -1503,19 +1702,41 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
             }
         }
 
-        document.getElementById('commentForm').addEventListener('submit', function(e) {
+        document.getElementById('commentForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const formData = new FormData(this);
             const postId = parseInt(formData.get('post_id'));
             if (!postId || isNaN(postId)) { showMessage('文章信息错误', 'error'); return; }
 
-            const content = formData.get('content').trim();
-            if (!content) { showMessage('评论内容不能为空', 'warning'); return; }
-
-            const data = { post_id: postId, content: content };
             const commentId = formData.get('comment_id');
             const url = commentId ? `/edit_comment/${commentId}` : '/add_comment';
             const isEdit = !!commentId;
+
+            let voicePath = null;
+            let voiceDuration = null;
+            let textContent = formData.get('content').trim();
+
+            // 有录音则先上传语音
+            if (recordedBlob) {
+                const vForm = new FormData();
+                vForm.append('voice', recordedBlob, 'voice.wav');
+                vForm.append('duration', recordedDuration);
+                try {
+                    const res = await fetch('/upload_voice', { method: 'POST', body: vForm });
+                    const vData = await res.json();
+                    if (!vData.success) { showMessage('语音上传失败: ' + vData.message, 'error'); return; }
+                    voicePath = vData.voice_path;
+                    voiceDuration = vData.duration;
+                    if (!textContent) textContent = '[语音评论]';
+                } catch(err) {
+                    showMessage('语音上传失败，请重试', 'error');
+                    return;
+                }
+            } else {
+                if (!textContent) { showMessage('评论内容不能为空', 'warning'); return; }
+            }
+
+            const data = { post_id: postId, content: textContent, voice_path: voicePath, voice_duration: voiceDuration };
 
             fetch(url, {
                 method: 'POST',
@@ -1598,5 +1819,341 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
             document.addEventListener('DOMContentLoaded', () => { document.body.classList.add('loaded'); });
             window.addEventListener('load', () => { setTimeout(() => { document.body.classList.add('fully-loaded'); }, 100); });
         })();
+
+
+    // ===== 语音评论功能 =====
+
+    // 预先获取的麦克风 stream（复用，避免每次点击都走异步授权流程）
+    var micStream = null;
+
+    // 打开评论弹窗时调用，提前申请麦克风权限
+    function initMic() {
+        if (micStream && micStream.active) return;
+        var isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (!isSecure || !navigator.mediaDevices) return;
+        navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function(stream) {
+            micStream = stream;
+        }).catch(function() {});
+    }
+
+    // Touch 设备 touchstart 需要 passive:false 才能 preventDefault（阻止点击系统菜单）
+    document.addEventListener('touchstart', function(e) {
+        var btn = e.target && (e.target.id === 'voiceRecordBtn' ? e.target : (e.target.closest && e.target.closest('#voiceRecordBtn')));
+        if (btn) {
+            e.preventDefault();
+            startRecording();
+        }
+    }, { passive: false, capture: true });
+    // mouseup 挂在 document，防止鼠标拖出按钮后停不下来
+    document.addEventListener('mouseup', function() { stopRecording(); });
+    document.addEventListener('contextmenu', function(e) {
+        if (e.target && e.target.id === 'voiceRecordBtn') e.preventDefault();
+    });
+
+    function startRecording() {
+    // 防止重复触发
+    if (audioContext) return;
+    
+    // 用特殊占位值标记"正在启动"
+    audioContext = 'pending';
+    clearVoiceRecording();
+
+    var isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!isSecure) {
+        audioContext = null;
+        document.getElementById('voiceRecordStatus').textContent = '⚠️ 语音功能需要 HTTPS 环境';
+        return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        audioContext = null;
+        document.getElementById('voiceRecordStatus').textContent = '⚠️ 当前浏览器不支持录音';
+        return;
+    }
+
+   
+    function doRecord(stream) {
+        // stopRecording 已经把 audioContext 从 'pending' 清为 null，说明用户已松手，放弃
+        if (audioContext !== 'pending') return;
+
+        recordingStream = stream;
+        var ACtor = window.AudioContext || window.webkitAudioContext;
+        var ctx = new ACtor();
+        audioContext = ctx;
+        sampleRate = ctx.sampleRate;
+
+        var source = ctx.createMediaStreamSource(stream);
+        var processor = ctx.createScriptProcessor(4096, 1, 1);
+        pcmChunks = [];
+        processor.onaudioprocess = function(ev) {
+            pcmChunks.push(new Float32Array(ev.inputBuffer.getChannelData(0)));
+        };
+        source.connect(processor);
+        processor.connect(ctx.destination);
+        ctx._processor = processor;
+        ctx._source = source;
+
+        recordingStartTime = Date.now();
+        var btn = document.getElementById('voiceRecordBtn');
+        if (btn) btn.classList.add('recording');
+        document.getElementById('voiceRecordStatus').textContent = '🔴 录音中...';
+        recordingTimer = setInterval(function() {
+            var sec = Math.round((Date.now() - recordingStartTime) / 1000);
+            document.getElementById('voiceRecordStatus').textContent = '🔴 录音中... ' + sec + 's';
+            if (sec >= 60) stopRecording();
+        }, 500);
+    }
+
+    // 每次点击时都重新请求麦克风权限
+    document.getElementById('voiceRecordStatus').textContent = '🎙️ 请求麦克风权限...';
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then(function(stream) {
+            // 检查是否还在 pending 状态（用户是否还按着按钮）
+            if (audioContext !== 'pending') {
+                // 用户已经松手，关闭 stream
+                stream.getTracks().forEach(track => track.stop());
+                return;
+            }
+            doRecord(stream);
+        })
+        .catch(function(err) {
+            audioContext = null;
+            var msg = err.name === 'NotAllowedError' ? '请允许麦克风权限后重试'
+                    : err.name === 'NotFoundError'   ? '未检测到麦克风设备'
+                    : '麦克风错误：' + err.message;
+            document.getElementById('voiceRecordStatus').textContent = '⚠️ ' + msg;
+        });
+}
+
+function stopRecording() {
+    // 若还在 pending 阶段，清掉占位让 doRecord 检测到后退出
+    if (audioContext === 'pending') { 
+        audioContext = null; 
+        return; 
+    }
+    if (!audioContext || !recordingStream) return;
+    
+    // 最短录音 300ms，防止 touchstart/touchend 同帧触发误停
+    if (recordingStartTime && Date.now() - recordingStartTime < 300) {
+        // 录音太短，清理资源
+        clearRecordingResources();
+        return;
+    }
+
+    var ctx = audioContext;
+    var chunks = pcmChunks;
+    var sr = sampleRate;
+    var startTime = recordingStartTime;
+    
+    // 清理录音相关资源
+    clearRecordingResources();
+
+    recordedDuration = Math.round((Date.now() - startTime) / 1000) || 1;
+
+    var totalLen = 0;
+    for (var i = 0; i < chunks.length; i++) totalLen += chunks[i].length;
+    if (totalLen === 0) {
+        document.getElementById('voiceRecordStatus').textContent = '⚠️ 录音太短，请重试';
+        return;
+    }
+    var merged = new Float32Array(totalLen);
+    var offset = 0;
+    for (var i = 0; i < chunks.length; i++) { merged.set(chunks[i], offset); offset += chunks[i].length; }
+    recordedBlob = encodeWAV(merged, sr);
+    document.getElementById('voiceRecordStatus').textContent = '';
+    
+    // 自动提交语音评论
+    submitVoiceComment();
+}
+function clearRecordingResources() {
+    if (audioContext) {
+        try { 
+            if (audioContext._processor) audioContext._processor.onaudioprocess = null;
+            if (audioContext._source) audioContext._source.disconnect();
+            if (audioContext._processor) audioContext._processor.disconnect();
+            audioContext.close().catch(function(){}); 
+        } catch(e2) {}
+        audioContext = null;
+    }
+    
+    if (recordingStream) {
+        recordingStream.getTracks().forEach(track => track.stop());
+        recordingStream = null;
+    }
+    
+    pcmChunks = [];
+    clearInterval(recordingTimer);
+    
+    var btn = document.getElementById('voiceRecordBtn');
+    if (btn) btn.classList.remove('recording');
+    
+    // 清除录音开始时间
+    recordingStartTime = null;
+}
+
+
+    function resetVoiceState() {
+        clearVoiceRecording();
+        clearRecordingResources(); // 确保释放麦克风资源
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        clearInterval(recordingTimer);
+    }
+    function encodeWAV(samples, sr) {
+        var buf = new ArrayBuffer(44 + samples.length * 2);
+        var view = new DataView(buf);
+        function ws(off, str) { for (var i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); }
+        ws(0, 'RIFF');
+        view.setUint32(4, 36 + samples.length * 2, true);
+        ws(8, 'WAVE'); ws(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);   // PCM
+        view.setUint16(22, 1, true);   // mono
+        view.setUint32(24, sr, true);
+        view.setUint32(28, sr * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        ws(36, 'data');
+        view.setUint32(40, samples.length * 2, true);
+        var idx = 44;
+        for (var s = 0; s < samples.length; s++) {
+            var v = samples[s] < -1 ? -1 : samples[s] > 1 ? 1 : samples[s];
+            view.setInt16(idx, v < 0 ? v * 0x8000 : v * 0x7FFF, true);
+            idx += 2;
+        }
+        return new Blob([buf], { type: 'audio/wav' });
+    }
+
+    function showVoicePreview(blob, duration) {
+        const url = URL.createObjectURL(blob);
+        previewAudio = new Audio(url);
+        currentVoiceDuration = duration;
+        const preview = document.getElementById('voicePreview');
+        preview.style.display = 'flex';
+        preview.innerHTML = `
+            <button type="button" class="voice-preview-play" id="previewPlayBtn" onclick="togglePreviewPlay()">▶</button>
+            <span class="voice-preview-duration">${duration}"</span>
+            <button type="button" class="voice-preview-del" onclick="clearVoiceRecording()" title="重录">✕</button>`;
+        previewAudio.onended = () => {
+            const pb = document.getElementById('previewPlayBtn');
+            if (pb) pb.textContent = '▶';
+        };
+    }
+
+    function togglePreviewPlay() {
+        if (!previewAudio) return;
+        if (previewAudio.paused) {
+            previewAudio.play();
+            document.getElementById('previewPlayBtn').textContent = '⏸';
+        } else {
+            previewAudio.pause();
+            previewAudio.currentTime = 0;
+            document.getElementById('previewPlayBtn').textContent = '▶';
+        }
+    }
+
+    function clearVoiceRecording() {
+        recordedBlob = null; recordedDuration = 0; currentVoicePath = null; currentVoiceDuration = 0;
+        if (previewAudio) { previewAudio.pause(); previewAudio = null; }
+        var preview = document.getElementById('voicePreview');
+        if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+        var status = document.getElementById('voiceRecordStatus');
+        if (status) status.textContent = '';
+    }
+
+    function submitVoiceComment() {
+    var postId = parseInt(document.getElementById('commentPostId').value);
+    if (!postId || isNaN(postId)) { 
+        showMessage('请先打开评论框', 'error'); 
+        clearRecordingResources();
+        return; 
+    }
+    if (!recordedBlob) { 
+        showMessage('没有录音内容', 'error'); 
+        clearRecordingResources();
+        return; 
+    }
+
+    document.getElementById('voiceRecordStatus').textContent = '上传中...';
+
+    var vForm = new FormData();
+    vForm.append('voice', recordedBlob, 'voice.wav');
+    vForm.append('duration', recordedDuration);
+
+    fetch('/upload_voice', { method: 'POST', body: vForm })
+    .then(function(res) { return res.json(); })
+    .then(function(vData) {
+        if (!vData.success) { 
+            showMessage('语音上传失败: ' + vData.message, 'error'); 
+            clearRecordingResources();
+            return; 
+        }
+        var data = {
+            post_id: postId,
+            content: '[语音评论]',
+            voice_path: vData.voice_path,
+            voice_duration: vData.duration
+        };
+        return fetch('/add_comment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.success) {
+            // 成功发送后，确保释放所有录音资源
+            clearRecordingResources();
+            clearVoiceRecording();
+            
+            closeCommentModal();
+            loadComments(currentPostId);
+            showMessage('语音评论发送成功！', 'success');
+        } else {
+            showMessage(data.message || '提交失败', 'error');
+            document.getElementById('voiceRecordStatus').textContent = '';
+            clearRecordingResources();
+        }
+    })
+    .catch(function(err) {
+        showMessage('提交失败，请重试', 'error');
+        document.getElementById('voiceRecordStatus').textContent = '';
+        clearRecordingResources();
+    });
+}
+
+    function renderVoiceBubble(voicePath, duration, commentId) {
+        return `<div class="voice-bubble" id="vbubble-${commentId}" onclick="playVoiceBubble('/${voicePath}', ${commentId})">
+            <div class="voice-bubble-play">▶</div>
+            <div class="voice-wave"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <span class="voice-bubble-duration">${duration || 0}"</span>
+        </div>`;
+    }
+
+    function playVoiceBubble(url, commentId) {
+        if (currentBubbleAudio && !currentBubbleAudio.paused) {
+            currentBubbleAudio.pause();
+            currentBubbleAudio.currentTime = 0;
+            const oldBubble = document.getElementById('vbubble-' + currentBubbleId);
+            if (oldBubble) { oldBubble.classList.remove('playing'); oldBubble.querySelector('.voice-bubble-play').textContent = '▶'; }
+            if (currentBubbleId === commentId) { currentBubbleAudio = null; currentBubbleId = null; return; }
+        }
+        const bubble = document.getElementById('vbubble-' + commentId);
+        const audio = new Audio(url);
+        currentBubbleAudio = audio; currentBubbleId = commentId;
+        audio.play();
+        if (bubble) { bubble.classList.add('playing'); bubble.querySelector('.voice-bubble-play').textContent = '⏸'; }
+        audio.onended = () => {
+            if (bubble) { bubble.classList.remove('playing'); bubble.querySelector('.voice-bubble-play').textContent = '▶'; }
+            currentBubbleAudio = null; currentBubbleId = null;
+        };
+    }
+
+    function resetVoiceState() {
+        clearVoiceRecording();
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        clearInterval(recordingTimer);
+    }
+
+
     </script>
 {% endblock %}

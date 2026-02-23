@@ -14,6 +14,44 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 
 # ========== 辅助函数 ==========
+def get_file_full_path(file_path):
+    """获取文件的完整系统路径"""
+    if not file_path:
+        return None
+    
+    # 如果路径已经是完整路径（以 / 开头或包含盘符），直接返回
+    if os.path.isabs(file_path):
+        return file_path
+    
+    # 如果路径以 'static/' 开头
+    if file_path.startswith('static/'):
+        return os.path.join(app.root_path, file_path)
+    
+    # 如果路径以 'uploads/' 开头，需要加上 static 目录
+    if file_path.startswith('uploads/'):
+        return os.path.join(app.root_path, 'static', file_path)
+    
+    # 其他情况，默认加上 static/uploads
+    return os.path.join(app.root_path, 'static', 'uploads', file_path)
+
+
+def delete_file(file_path):
+    """安全删除文件"""
+    if not file_path:
+        return False
+    
+    full_path = get_file_full_path(file_path)
+    try:
+        if os.path.exists(full_path):
+            os.remove(full_path)
+            print(f"文件删除成功: {full_path}")
+            return True
+        else:
+            print(f"文件不存在: {full_path}")
+            return False
+    except Exception as e:
+        print(f"删除文件失败: {full_path}, 错误: {e}")
+        return False
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -256,14 +294,17 @@ def edit_profile():
         if file and file.filename and allowed_file(file.filename):
             # 删除旧头像
             if current_user.avatar_path:
-                old_path = os.path.join(app.root_path, current_user.avatar_path)
-                if os.path.exists(old_path):
-                    os.remove(old_path)
+                delete_file(current_user.avatar_path)  # 使用辅助函数删除
 
             ext = file.filename.rsplit('.', 1)[1].lower()
             filename = f"avatar_{uuid.uuid4().hex}.{ext}"
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            
+            # 保存到 static/uploads 目录
+            upload_folder = os.path.join(app.root_path, 'static', 'uploads')
+            os.makedirs(upload_folder, exist_ok=True)
+            save_path = os.path.join(upload_folder, filename)
             file.save(save_path)
+            
             current_user.avatar_path = f"uploads/{filename}"
 
         current_user.bio = bio
@@ -293,13 +334,17 @@ def add_post():
         image_paths = []
         files = request.files.getlist('images')
 
+        # 确保上传目录存在
+        upload_folder = os.path.join(app.root_path, 'static', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+
         for file in files:
             if file and file.filename and allowed_file(file.filename):
                 ext = file.filename.rsplit('.', 1)[1].lower()
                 filename = f"{uuid.uuid4().hex}.{ext}"
-                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-                save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                save_path = os.path.join(upload_folder, filename)
                 file.save(save_path)
+                # 存储相对路径
                 image_paths.append(f"uploads/{filename}")
 
         image_paths_json = json.dumps(image_paths) if image_paths else None
@@ -394,26 +439,31 @@ def edit_post(post_id):
             except (json.JSONDecodeError, Exception):
                 kept_image_paths = []
 
+        # 删除不需要的图片文件
         if post.image_path:
             try:
                 old_image_paths = json.loads(post.image_path)
                 for i, image_path in enumerate(old_image_paths):
                     if str(i) not in keep_images:
-                        full_path = os.path.join(app.root_path, image_path)
-                        if os.path.exists(full_path):
-                            os.remove(full_path)
+                        delete_file(image_path)  # 使用辅助函数删除
             except (json.JSONDecodeError, Exception) as e:
                 print(f"删除旧图片文件时出错: {e}")
 
+        # 上传新图片
         new_image_paths = []
         if files and files[0].filename:
             for file in files:
                 if file and file.filename and allowed_file(file.filename):
                     ext = file.filename.rsplit('.', 1)[1].lower()
                     filename = f"{uuid.uuid4().hex}.{ext}"
-                    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-                    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    
+                    # 保存文件到 static/uploads 目录
+                    upload_folder = os.path.join(app.root_path, 'static', 'uploads')
+                    os.makedirs(upload_folder, exist_ok=True)
+                    save_path = os.path.join(upload_folder, filename)
                     file.save(save_path)
+                    
+                    # 存储相对路径
                     new_image_paths.append(f"uploads/{filename}")
 
         all_image_paths = kept_image_paths + new_image_paths
@@ -432,7 +482,6 @@ def edit_post(post_id):
 
     return render_template('edit_post.html', post=post, existing_images=existing_images, current_user=current_user)
 
-
 @app.route('/delete_post/<int:post_id>', methods=['POST'])
 @login_required
 def delete_post(post_id):
@@ -443,25 +492,55 @@ def delete_post(post_id):
         if not can_edit_post(post, current_user):
             return jsonify({'success': False, 'message': '你没有权限删除这篇文章'})
 
+        # 删除博客关联的图片文件
         if post.image_path:
             try:
                 image_paths = json.loads(post.image_path)
                 for image_path in image_paths:
-                    full_path = os.path.join(app.root_path, image_path)
-                    if os.path.exists(full_path):
-                        os.remove(full_path)
+                    delete_file(image_path)  # 使用辅助函数删除
             except (json.JSONDecodeError, Exception) as e:
                 print(f"删除图片文件时出错: {e}")
+
+        # 删除博客关联的评论中的语音文件
+        comments = Comment.query.filter_by(post_id=post_id).all()
+        for comment in comments:
+            if comment.voice_path:
+                delete_file(comment.voice_path)  # 使用辅助函数删除
+            db.session.delete(comment)
 
         db.session.delete(post)
         db.session.commit()
 
-        return jsonify({'success': True, 'message': '文章删除成功！'})
+        return jsonify({'success': True, 'message': '文章及关联文件删除成功！'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
 
 
+
+@app.route('/upload_voice', methods=['POST'])
+@login_required
+def upload_voice():
+    """上传语音文件，返回文件路径和时长"""
+    try:
+        file = request.files.get('voice')
+        duration = request.form.get('duration', 0, type=int)
+        if not file or not file.filename:
+            return jsonify({'success': False, 'message': '未上传文件'})
+        
+        ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'wav'
+        filename = f"voice_{uuid.uuid4().hex}.{ext}"
+        
+        # 保存到 static/uploads 目录
+        upload_folder = os.path.join(app.root_path, 'static', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        save_path = os.path.join(upload_folder, filename)
+        file.save(save_path)
+        
+        voice_path = f"uploads/{filename}"
+        return jsonify({'success': True, 'voice_path': voice_path, 'duration': duration})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 # ========== 评论操作 ==========
 
 @app.route('/get_comments/<int:post_id>')
@@ -488,7 +567,9 @@ def get_comments(post_id):
             'can_edit': can_edit,
             'author_avatar': author_avatar,
             'author_id': author_id,
-            'is_admin': is_admin  # 添加管理员标志
+            'is_admin': is_admin,
+            'voice_path': comment.voice_path,
+            'voice_duration': comment.voice_duration
         })
     return jsonify({'comments': comments_data})
 
@@ -509,12 +590,17 @@ def add_comment():
         if not post:
             return jsonify({'success': False, 'message': '文章不存在'})
 
+        voice_path = data.get('voice_path')
+        voice_duration = data.get('voice_duration')
+
         new_comment = Comment(
             post_id=post_id,
             content=content,
             author=current_user.username,
             user_id=current_user.id,
-            date=datetime.utcnow() + timedelta(hours=8)
+            date=datetime.utcnow() + timedelta(hours=8),
+            voice_path=voice_path,
+            voice_duration=voice_duration
         )
 
         db.session.add(new_comment)
@@ -531,7 +617,9 @@ def add_comment():
                 'can_edit': True,
                 'author_avatar': current_user.avatar_path,
                 'author_id': current_user.id,
-                'is_admin': current_user.role == 'admin'  # 添加管理员标志
+                'is_admin': current_user.role == 'admin',
+                'voice_path': new_comment.voice_path,
+                'voice_duration': new_comment.voice_duration
             }
         })
     except Exception as e:
@@ -578,7 +666,6 @@ def edit_comment(comment_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': f'更新评论失败: {str(e)}'})
 
-
 @app.route('/delete_comment/<int:comment_id>', methods=['POST'])
 @login_required
 def delete_comment(comment_id):
@@ -589,14 +676,17 @@ def delete_comment(comment_id):
         if not can_edit_comment(comment, current_user):
             return jsonify({'success': False, 'message': '你没有权限删除这条评论'})
 
+        # 删除评论关联的语音文件
+        if comment.voice_path:
+            delete_file(comment.voice_path)  # 使用辅助函数删除
+
         db.session.delete(comment)
         db.session.commit()
 
-        return jsonify({'success': True, 'message': '评论删除成功'})
+        return jsonify({'success': True, 'message': '评论及语音文件删除成功'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'删除评论失败: {str(e)}'})
-
 
 if __name__ == '__main__':
     with app.app_context():
