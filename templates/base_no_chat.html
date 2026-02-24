@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>{% block title %}CRAZYBLOG{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="/static/img/oceanyu.png" type="image/png">
+</head>
+<body>
+    <div id="home">
+        <nav class="navbar">
+            <div class="container">
+                <div class="nav-content">
+                    <a href="{{ url_for('index') }}" class="logo">CRAZYBLOG</a>
+
+                    <!-- 搜索功能 -->
+                    <div class="nav-search">
+                        <form method="GET" action="{{ url_for('index') }}" class="nav-search-form">
+                            <div class="nav-search-group">
+                                <!-- 第一行：搜索输入框和搜索按钮 -->
+                                <div class="search-row-1">
+                                    <input type="text" name="search_title"
+                                           value="{{ search_title or '' }}"
+                                           placeholder="搜索标题..."
+                                           class="nav-search-input">
+                                    <!-- PC端：日期选择框紧跟搜索框 -->
+                                    <input type="date" name="search_date"
+                                           value="{{ search_date or '' }}"
+                                           class="nav-search-date">
+                                    <button type="submit" class="nav-search-btn">
+                                        <img src="/static/img/search.png" alt="搜索" style="width: 1em; height: 1em; vertical-align: middle;" onerror="this.outerHTML='🔍'">
+                                    </button>
+                                    {% if search_title or search_date %}
+                                    <a href="{{ url_for('index') }}" class="nav-clear-btn" title="清除搜索">
+                                        <img src="/static/img/clear.png" alt="清空" style="width: 1em; height: 1em; vertical-align: middle;" onerror="this.outerHTML='✕'">
+                                    </a>
+                                    {% endif %}
+                                </div>
+
+                                <!-- 第二行：日期选择和添加按钮（移动端） -->
+                                <div class="search-row-2">
+                                    <input type="date" name="search_date"
+                                        value="{{ search_date or '' }}"
+                                        class="nav-search-date">
+                                    
+                                    <!-- 移动端操作按钮区域 -->
+                                    {% if current_user %}
+                                    <!-- 已登录状态：显示添加文章、用户信息和退出按钮 -->
+                                    <div class="mobile-actions">
+                                        <a href="{{ url_for('add_post') }}" class="mobile-action-btn">添加文章</a>
+                                        <div class="mobile-user-compact">
+                                            <a href="{{ url_for('user_profile', user_id=current_user.id) }}" class="mobile-user-link" title="{{ current_user.username }}">
+                                                <div class="mobile-avatar">
+                                                    {% if current_user.avatar_path %}
+                                                    <img src="/{{ current_user.avatar_path }}" alt="头像">
+                                                    {% else %}
+                                                    <span class="mobile-avatar-text">{{ current_user.username[0] }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            </a>
+                                            <a href="{{ url_for('logout') }}" class="mobile-logout-circle" title="退出登录">退出</a>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <!-- 未登录状态：显示登录和注册按钮 -->
+                                    <div class="mobile-actions">
+                                        <a href="{{ url_for('login') }}" class="mobile-action-btn">登录</a>
+                                        <a href="{{ url_for('register') }}" class="mobile-action-btn">注册</a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 右侧导航（PC端） -->
+                    <ul class="nav-links">
+                        {% if current_user %}
+                        <li><a href="{{ url_for('add_post') }}" class="add-post-btn">添加文章</a></li>
+                        <li class="nav-user-item">
+                            <a href="{{ url_for('user_profile', user_id=current_user.id) }}" class="nav-user-link" title="{{ current_user.username }}">
+                                <div class="nav-avatar">
+                                    {% if current_user.avatar_path %}
+                                    <img src="/{{ current_user.avatar_path }}" alt="头像">
+                                    {% else %}
+                                    <span class="nav-avatar-text">{{ current_user.username[0] }}</span>
+                                    {% endif %}
+                                </div>
+                                <span class="nav-username">{{ current_user.username }}</span>
+                            </a>
+                            <a href="{{ url_for('logout') }}" class="nav-logout-btn" title="退出登录">退出</a>
+                        </li>
+                        {% else %}
+                        <li><a href="{{ url_for('login') }}" class="add-post-btn">登录</a></li>
+                        <li><a href="{{ url_for('register') }}" class="nav-register-btn">注册</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+<main class="main-content">
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" id="flash-message">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+</main>
+
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2025 OceanYu. 版权所有 | OceanYu的CRAZYBLOG</p>
+                <p><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">冀ICP备2025117480号-1</a></p>
+            </div>
+        </footer>
+    </div>
+
+    <style>
+        /* 移动端样式 */
+        @media (max-width: 768px) {
+            .nav-content {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+
+            .main-content {
+                margin-top: 190px;
+                padding: 20px 0;
+            }
+
+            .nav-search {
+                order: 2;
+                max-width: 100%;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .logo {
+                order: 1;
+                text-align: center;
+                margin-bottom: 10px;
+            }
+
+            .nav-search-group {
+                display: block;
+                padding: 15px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 25px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .search-row-1 {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+
+            .search-row-2 {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: nowrap;
+                justify-content: space-between;
+            }
+
+            .search-row-1 .nav-search-date {
+                display: none;
+            }
+
+
+            .search-row-2 .nav-search-date {
+                display: block;
+                flex: 0 0 auto;
+                width: auto;
+                min-width: 70px;
+                padding: 8px 8px;
+                font-size: 13px; 
+                border-radius: 28px;
+                background: rgba(255, 255, 255, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                margin: 0;
+                height: 40px;
+                line-height: normal;
+                box-sizing: border-box;
+                color: white;
+            }
+
+            .nav-search-input {
+                flex: 1;
+                padding: 12px 15px;
+                font-size: 16px;
+                border-radius: 25px;
+                background: transparent;
+                border: none;
+                margin: 0;
+                color: white;
+            }
+
+            .nav-search-btn,
+            .nav-clear-btn {
+                padding: 12px 15px;
+                font-size: 16px;
+                margin: 0;
+                flex-shrink: 0;
+            }
+
+            /* 移动端操作按钮容器 */
+            .mobile-actions {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex: 1;
+                justify-content: flex-end;
+            }
+
+            /* 增大按钮样式 - 添加文章、登录、注册、退出按钮 */
+            .mobile-action-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                text-decoration: none;
+                padding: 0 18px;
+                height: 42px; /* 增大高度 */
+                min-width: 80px; /* 增大最小宽度 */
+                border-radius: 28px; /* 增大圆角 */
+                font-size: 14px; /* 增大字体 */
+                font-weight: 500;
+                transition: all 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                flex-shrink: 0;
+                white-space: nowrap;
+                box-sizing: border-box;
+                line-height: 1;
+            }
+
+            .mobile-action-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+            /* 退出按钮悬停效果 */
+            .mobile-action-btn:last-child:hover {
+                background: rgba(255, 100, 100, 0.3);
+            }
+
+            .mobile-user-compact {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-shrink: 0;
+            }
+
+            .mobile-user-link {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                text-decoration: none;
+                padding: 0;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.15);
+                transition: all 0.3s ease;
+                height: 42px;
+                width: 42px;
+                box-sizing: border-box;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .mobile-user-link:hover {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            /* 圆形退出按钮 */
+            .mobile-logout-circle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.15);
+                color: white;
+                text-decoration: none;
+                height: 42px;
+                width: 42px;
+                border-radius: 50%;
+                font-size: 13px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                box-sizing: border-box;
+                white-space: nowrap;
+            }
+
+            .mobile-logout-circle:hover {
+                background: rgba(255, 100, 100, 0.3);
+                transform: scale(1.05);
+            }
+
+            .mobile-avatar {
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                overflow: hidden;
+                background: linear-gradient(135deg, #FDC2CC, #FFF1F3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+
+            .mobile-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .mobile-avatar-text {
+                color: white;
+                font-size: 0.9rem;
+                font-weight: bold;
+            }
+
+            body {
+                font-size: 16px;
+            }
+        }
+
+        /* 更小屏幕的适配 */
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 10px 0;
+            }
+
+            .nav-search-group {
+                padding: 12px;
+            }
+
+            .search-row-2 {
+                gap: 5px;
+            }
+
+            /* 日期框保持原大小但稍微适应小屏幕 */
+            .search-row-2 .nav-search-date {
+                min-width: 110px;
+                padding: 6px 10px;
+                font-size: 13px;
+                height: 38px;
+            }
+
+            /* 按钮稍微缩小但保持比日期框大 */
+            .mobile-action-btn {
+                padding: 0 14px;
+                height: 44px;
+                min-width: 80px;
+                font-size: 15px;
+                border-radius: 25px;
+            }
+
+            .mobile-user-link {
+                height: 44px;
+                width: 44px;
+            }
+
+            .mobile-avatar {
+                width: 36px;
+                height: 36px;
+            }
+
+            .mobile-avatar-text {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* 超小屏幕的适配 */
+        @media (max-width: 380px) {
+            .search-row-2 .nav-search-date {
+                min-width: 95px;
+                padding: 5px 8px;
+                font-size: 12px;
+                height: 36px;
+            }
+
+            .mobile-action-btn {
+                padding: 0 10px;
+                height: 40px;
+                min-width: 70px;
+                font-size: 14px;
+                border-radius: 22px;
+            }
+
+            .mobile-user-link {
+                height: 40px;
+                width: 40px;
+            }
+
+            .mobile-avatar {
+                width: 32px;
+                height: 32px;
+            }
+        }
+
+        /* 导航栏搜索样式 */
+        .nav-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .nav-search {
+            flex: 1;
+            max-width: 500px;
+        }
+
+        .nav-search-form {
+            width: 100%;
+        }
+
+        .footer, .footer a {
+            color: black;
+        }
+        .footer a {
+            text-decoration: none;
+        }
+
+        .nav-search-group {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 5px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+
+        .search-row-1 {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 5px;
+        }
+
+        .search-row-2 {
+            display: none;
+        }
+
+        .nav-search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 8px 15px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .nav-search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .nav-search-date {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 8px 10px;
+            font-size: 14px;
+            outline: none;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 140px;
+        }
+
+        .nav-search-date::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.7;
+        }
+
+        .alert {
+            transition: opacity 0.5s ease;
+            opacity: 1;
+        }
+
+        .nav-search-btn, .nav-clear-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .nav-search-btn:hover, .nav-clear-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .nav-clear-btn {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .logo {
+            flex-shrink: 0;
+        }
+
+        .nav-links {
+            flex-shrink: 0;
+            display: flex;
+            list-style: none;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        /* 用户导航项 */
+        .nav-user-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-user-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem 0.4rem 0.4rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .nav-user-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .nav-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FDC2CC, #FFF1F3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .nav-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .nav-avatar-text {
+            color: white;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .nav-username {
+            font-size: 0.9rem;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .nav-logout-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-logout-btn:hover {
+            background: rgba(255, 100, 100, 0.3);
+        }
+
+        .nav-register-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-register-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* 移动端添加文章按钮 - 默认隐藏 */
+        .mobile-add-post-btn {
+            display: none;
+        }
+
+        /* 移动端样式 */
+        @media (max-width: 768px) {
+            .nav-content {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+
+            .main-content {
+                margin-top: 190px;
+                padding: 20px 0;
+            }
+
+            .nav-search {
+                order: 2;
+                max-width: 100%;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .logo {
+                order: 1;
+                text-align: center;
+                margin-bottom: 10px;
+            }
+
+            .nav-search-group {
+                display: block;
+                padding: 15px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 25px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .search-row-1 {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+
+            .search-row-2 {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .search-row-1 .nav-search-date {
+                display: none;
+            }
+
+            .search-row-2 .nav-search-date {
+                display: block;
+            }
+
+            .nav-search-input {
+                flex: 1;
+                padding: 12px 15px;
+                font-size: 16px;
+                border-radius: 25px;
+                background: transparent;
+                border: none;
+                margin: 0;
+                color: white;
+            }
+
+            .nav-search-btn,
+            .nav-clear-btn {
+                padding: 12px 15px;
+                font-size: 16px;
+                margin: 0;
+                flex-shrink: 0;
+            }
+
+            .nav-search-date {
+                flex: 1;
+                padding: 12px 15px;
+                font-size: 16px;
+                border-radius: 25px;
+                background: rgba(255, 255, 255, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                margin: 0;
+                min-width: auto;
+                border-left: none;
+            }
+
+            .mobile-add-post-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                text-decoration: none;
+                padding: 12px 20px;
+                border-radius: 25px;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                flex-shrink: 0;
+                margin: 0;
+            }
+
+            .mobile-add-post-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: translateY(-2px);
+            }
+
+            body {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 10px 0;
+            }
+
+            .nav-search-group {
+                padding: 12px;
+            }
+
+            .nav-search-input,
+            .nav-search-date {
+                font-size: 16px;
+                padding: 10px 12px;
+            }
+
+            .mobile-add-post-btn {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessage = document.getElementById('flash-message');
+        if (flashMessage) {
+            setTimeout(function() {
+                flashMessage.style.opacity = '0';
+                setTimeout(function() {
+                    flashMessage.style.display = 'none';
+                }, 500);
+            }, 3000);
+        }
+    });
+
+    // 同步两个日期输入框的值
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInputs = document.querySelectorAll('input[name="search_date"]');
+
+        dateInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                dateInputs.forEach(otherInput => {
+                    if (otherInput !== this) {
+                        otherInput.value = this.value;
+                    }
+                });
+            });
+        });
+
+        if (dateInputs.length > 0 && dateInputs[0].value) {
+            dateInputs.forEach(input => {
+                input.value = dateInputs[0].value;
+            });
+        }
+    });
+</script>
+</body>
+</html>

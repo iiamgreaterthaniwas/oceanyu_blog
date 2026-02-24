@@ -8,12 +8,97 @@ from database import db, app
 from models import Post, Comment, User
 from sqlalchemy import cast, Date
 from functools import wraps
+import time
+import requests as http_requests
 
 # 确保上传目录存在
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+COZE_API_TOKEN = "pat_QpFYH4qtFkBBWT6Rbo8qU5ImMEkhgUM6Ot5CeU5VoNFsltAkNzj6193GzOg1FK1U"          
+COZE_BOT_ID    = "7443766574072807458"  
+COZE_API_BASE  = "https://api.coze.cn"
 
 # ========== 辅助函数 ==========
+def coze_chat(user_message: str, conversation_id: str = None):
+    """
+    调用 Coze /v3/chat 接口（非流式），轮询直至获得回复。
+    返回 (reply_text, conversation_id) 或抛出异常。
+    """
+    headers = {
+        "Authorization": f"Bearer {COZE_API_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "bot_id": COZE_BOT_ID,
+        "user_id": "blog_user",          # 可按需改为真实 user_id
+        "stream": False,
+        "auto_save_history": True,
+        "additional_messages": [
+            {
+                "role": "user",
+                "content": user_message,
+                "content_type": "text",
+            }
+        ],
+    }
+
+    # 如果传入了 conversation_id，则追加（实现多轮对话）
+    if conversation_id:
+        payload["conversation_id"] = conversation_id
+
+    # 1. 发起对话
+    resp = http_requests.post(
+        f"{COZE_API_BASE}/v3/chat",
+        headers=headers,
+        json=payload,
+        timeout=15,
+    )
+    resp.raise_for_status()
+    result = resp.json()
+
+    chat_data        = result.get("data", {})
+    chat_id          = chat_data.get("id")
+    new_conv_id      = chat_data.get("conversation_id")
+
+    if not chat_id:
+        raise RuntimeError(f"Coze 返回异常: {result}")
+
+    # 2. 轮询状态
+    for _ in range(30):
+        time.sleep(1)
+        retrieve_resp = http_requests.get(
+            f"{COZE_API_BASE}/v3/chat/retrieve",
+            headers=headers,
+            params={"chat_id": chat_id, "conversation_id": new_conv_id},
+            timeout=10,
+        )
+        retrieve_resp.raise_for_status()
+        status = retrieve_resp.json().get("data", {}).get("status")
+
+        if status == "completed":
+            # 3. 获取消息列表
+            msg_resp = http_requests.get(
+                f"{COZE_API_BASE}/v3/chat/message/list",
+                headers=headers,
+                params={"chat_id": chat_id, "conversation_id": new_conv_id},
+                timeout=10,
+            )
+            msg_resp.raise_for_status()
+            messages = msg_resp.json().get("data", [])
+
+            # 找到 assistant 的 answer 消息
+            for msg in messages:
+                if msg.get("role") == "assistant" and msg.get("type") == "answer":
+                    return msg.get("content", ""), new_conv_id
+
+            raise RuntimeError("未找到 assistant 回复")
+
+        elif status in ("failed", "requires_action", "canceled"):
+            raise RuntimeError(f"对话状态异常: {status}")
+
+    raise TimeoutError("Coze 响应超时（30秒）")
+
 def get_file_full_path(file_path):
     """获取文件的完整系统路径"""
     if not file_path:
@@ -107,6 +192,31 @@ def inject_user():
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+# ========== chat路由 ==========
+@app.route('/chat_api', methods=['POST'])
+def chat_api():
+    """前端聊天组件调用的接口"""
+    try:
+        data            = request.get_json(force=True) or {}
+        user_message    = data.get('message', '').strip()
+        conversation_id = data.get('conversation_id')   # 可选，用于多轮对话
+
+        if not user_message:
+            return jsonify({'success': False, 'error': '消息不能为空'})
+
+        reply, new_conv_id = coze_chat(user_message, conversation_id)
+
+        return jsonify({
+            'success': True,
+            'reply': reply,
+            'conversation_id': new_conv_id,
+        })
+
+    except TimeoutError as e:
+        return jsonify({'success': False, 'error': str(e)}), 504
+    except Exception as e:
+        app.logger.error(f"chat_api error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ========== 主页 ==========
 

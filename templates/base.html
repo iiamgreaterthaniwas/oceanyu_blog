@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
     <title>{% block title %}CRAZYBLOG{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat_widget.css') }}">
     <link rel="icon" href="/static/img/oceanyu.png" type="image/png">
 </head>
 <body>
@@ -788,5 +789,6 @@
         }
     });
 </script>
+{% include 'chat_widget.html' %}
 </body>
 </html>

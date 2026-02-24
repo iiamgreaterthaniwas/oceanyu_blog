@@ -1,0 +1,746 @@
+{# 传递用户信息给 JS #}
+{% if current_user and current_user.avatar_path %}
+<script>
+    window._userAvatarPath = "/{{ current_user.avatar_path }}";
+    window._userName = "{{ current_user.username | e }}";
+</script>
+{% else %}
+<script>
+    window._userAvatarPath = null;
+    window._userName = "访客";
+</script>
+{% endif %}
+
+<!-- ========== 悬浮按钮 FAB ========== -->
+<button class="chat-fab" id="chatFab" title="和 AI 聊天">
+    <!-- 像素化头像画布，JS 渲染后替换 -->
+    <canvas id="chatFabCanvas" width="62" height="62" style="display:none; border-radius:50%;"></canvas>
+    <!-- 加载中的粉色默认图标 -->
+    <span class="chat-fab-icon" id="chatFabFallback">✨</span>
+</button>
+
+<!-- ========== 聊天窗口 ========== -->
+<div class="chat-window" id="chatWindow">
+
+    <!-- 窗口头部 -->
+    <div class="chat-header">
+        <div class="chat-header-left">
+            <div class="chat-header-avatar" id="chatHeaderAvatar">
+                <!-- 像素化头像由 JS 插入 canvas -->
+                <span class="chat-header-avatar-fallback">✨</span>
+            </div>
+            <div class="chat-header-info">
+                <span class="chat-header-name" id="chatHeaderName">AI 小助手</span>
+                <span class="chat-header-status" id="chatStatus">
+                    <span class="status-dot"></span> 在线
+                </span>
+            </div>
+        </div>
+        <div class="chat-header-actions">
+            <button class="chat-action-btn" onclick="clearAndResetChat()" title="清空对话">🗑️</button>
+            <button class="chat-action-btn" onclick="toggleChatWindow()" title="关闭">✕</button>
+        </div>
+    </div>
+
+    <!-- 消息区域 -->
+    <div class="chat-messages" id="chatMessages"></div>
+
+    <!-- 输入区域 -->
+    <div class="chat-input-area">
+        <div class="chat-input-wrapper">
+            <textarea
+                id="chatInput"
+                class="chat-input"
+                placeholder="输入消息，Enter 发送..."
+                rows="1"
+                onkeydown="handleChatKeydown(event)"
+                oninput="autoResizeChatInput(this)"
+            ></textarea>
+            <button class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 遮罩层（移动端） -->
+<div class="chat-overlay" id="chatOverlay" onclick="toggleChatWindow()"></div>
+
+<script>
+(function () {
+    // =============================================
+    //  全局状态
+    // =============================================
+    let chatOpen          = false;
+    let chatLoading       = false;
+    let chatConversationId = null;
+
+    const userName    = window._userName    || '访客';
+    const avatarPath  = window._userAvatarPath || null;
+
+    // AI 名称：用户名 + (AI限定)
+    const aiName = userName + '（AI限定）';
+
+    // =============================================
+    //  轻量像素化处理
+    //  保留头像可识别度，添加轻微的像素风格
+    //  使用较小的像素块和混合采样，让人能认出是自己
+    // =============================================
+    function lightPixelate(srcUrl, canvasEl, options, callback) {
+        // 默认参数：小像素块，保留细节
+        const pixelSize = options.pixelSize || 4;  // 更小的像素块（4px）
+        const w = canvasEl.width;
+        const h = canvasEl.height;
+        const ctx = canvasEl.getContext('2d');
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function () {
+            // 计算网格尺寸 - 使用更精细的网格
+            const cols = Math.ceil(w / pixelSize);
+            const rows = Math.ceil(h / pixelSize);
+
+            // 第一步：绘制原始图像到离屏canvas（保持平滑，保留细节）
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = w;
+            offCanvas.height = h;
+            const offCtx = offCanvas.getContext('2d');
+            offCtx.drawImage(img, 0, 0, w, h);
+
+            // 第二步：创建像素化效果，但保留更多原始色彩
+            ctx.clearRect(0, 0, w, h);
+            
+            // 使用双线性采样，让像素块之间有平滑过渡，而不是生硬的马赛克
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const x = col * pixelSize;
+                    const y = row * pixelSize;
+                    
+                    // 获取该区域的中心点颜色，而不是单点采样
+                    const centerX = Math.min(x + pixelSize/2, w - 1);
+                    const centerY = Math.min(y + pixelSize/2, h - 1);
+                    
+                    // 读取像素颜色
+                    const pixel = offCtx.getImageData(centerX, centerY, 1, 1).data;
+                    const r = pixel[0];
+                    const g = pixel[1];
+                    const b = pixel[2];
+                    const a = pixel[3];
+
+                    if (a < 30) continue;
+
+                    // 使用轻微的圆角，让像素块不那么生硬
+                    ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                    
+                    // 如果像素块很小，就用矩形；如果像素块稍大，可以加轻微圆角
+                    if (pixelSize <= 4) {
+                        ctx.fillRect(x, y, pixelSize, pixelSize);
+                    } else {
+                        // 轻微的圆角，让视觉更柔和
+                        const radius = pixelSize * 0.15;
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, pixelSize, pixelSize, radius);
+                        ctx.fill();
+                    }
+                }
+            }
+
+            // 可选：添加轻微的锐化效果，让头像更清晰
+            if (options.sharpen) {
+                const imageData = ctx.getImageData(0, 0, w, h);
+                const data = imageData.data;
+                // 简单的对比度增强
+                for (let i = 0; i < data.length; i += 4) {
+                    data[i] = Math.min(255, data[i] * 1.05);     // R
+                    data[i+1] = Math.min(255, data[i+1] * 1.05); // G
+                    data[i+2] = Math.min(255, data[i+2] * 1.05); // B
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
+
+            // 显示画布，隐藏 fallback
+            canvasEl.style.display = 'block';
+            const fallback = document.getElementById('chatFabFallback');
+            if (fallback) fallback.style.display = 'none';
+
+            if (callback) callback(canvasEl);
+        };
+        img.onerror = function () { 
+            console.log('头像加载失败，使用fallback');
+        };
+        img.src = srcUrl;
+    }
+
+    // 添加 roundRect 方法（如果没有）
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            this.moveTo(x + r, y);
+            this.lineTo(x + w - r, y);
+            this.quadraticCurveTo(x + w, y, x + w, y + r);
+            this.lineTo(x + w, y + h - r);
+            this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            this.lineTo(x + r, y + h);
+            this.quadraticCurveTo(x, y + h, x, y + h - r);
+            this.lineTo(x, y + r);
+            this.quadraticCurveTo(x, y, x + r, y);
+            return this;
+        };
+    }
+
+    // 为聊天窗口头部生成轻量像素化 canvas
+    function buildHeaderPixelAvatar(srcUrl) {
+        const headerAvatar = document.getElementById('chatHeaderAvatar');
+
+        const c = document.createElement('canvas');
+        c.width  = 40;
+        c.height = 40;
+        c.style.cssText = 'width:40px;height:40px;border-radius:50%;';
+
+        lightPixelate(srcUrl, c, { pixelSize: 3, sharpen: true }, function () {
+            headerAvatar.innerHTML = '';
+            headerAvatar.appendChild(c);
+        });
+    }
+
+    // 生成消息气泡用的轻量像素化 canvas（34×34）
+    function makeMsgPixelCanvas(srcUrl, callback) {
+        const c = document.createElement('canvas');
+        c.width  = 34;
+        c.height = 34;
+        c.className = 'msg-avatar ai-avatar';
+        c.style.cssText = 'border-radius:50%;flex-shrink:0;';
+
+        lightPixelate(srcUrl, c, { pixelSize: 3, sharpen: true }, function () {
+            if (callback) callback(c);
+        });
+
+        // 如果图片加载失败的处理
+        const img = new Image();
+        img.onerror = function () {
+            if (callback) {
+                const d = document.createElement('div');
+                d.className = 'msg-avatar ai-avatar';
+                d.textContent = '✨';
+                d.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:1rem;';
+                callback(d);
+            }
+        };
+    }
+
+    // =============================================
+    //  初始化像素化头像（页面加载后执行）
+    // =============================================
+    function initPixelAvatars() {
+        if (!avatarPath) return;
+
+        // FAB 按钮（使用更小的像素块，保留细节）
+        const fabCanvas = document.getElementById('chatFabCanvas');
+        if (fabCanvas) lightPixelate(avatarPath, fabCanvas, { pixelSize: 4, sharpen: true });
+
+        // 头部头像（pixelSize=3，更精细）
+        buildHeaderPixelAvatar(avatarPath);
+
+        // 更新头部名字
+        const nameEl = document.getElementById('chatHeaderName');
+        if (nameEl) nameEl.textContent = aiName;
+    }
+
+    // =============================================
+    //  打字机效果
+    // =============================================
+    function typewriter(el, text, speed, onDone) {
+        speed = speed || 28;
+        let i = 0;
+        el.textContent = '';
+        const timer = setInterval(function () {
+            const ch = text[i];
+            if (ch === '\n') {
+                el.appendChild(document.createElement('br'));
+            } else {
+                el.appendChild(document.createTextNode(ch));
+            }
+            i++;
+            scrollChatToBottom();
+            if (i >= text.length) {
+                clearInterval(timer);
+                if (onDone) onDone();
+            }
+        }, speed);
+    }
+
+    // =============================================
+    //  获取当前时间字符串
+    // =============================================
+    function getNowTime() {
+        const d = new Date();
+        return d.getHours().toString().padStart(2, '0') + ':' +
+               d.getMinutes().toString().padStart(2, '0');
+    }
+
+    // =============================================
+    //  滚动到底部
+    // =============================================
+    function scrollChatToBottom() {
+        const msgs = document.getElementById('chatMessages');
+        if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    // =============================================
+    //  构建像素化 AI 头像节点（异步）
+    // =============================================
+    function buildAiAvatarNode(callback) {
+        if (avatarPath) {
+            makeMsgPixelCanvas(avatarPath, callback);
+        } else {
+            const d = document.createElement('div');
+            d.className = 'msg-avatar ai-avatar';
+            d.textContent = '✨';
+            d.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:1rem;';
+            callback(d);
+        }
+    }
+
+    // =============================================
+    //  构建用户头像节点
+    // =============================================
+    function buildUserAvatarNode() {
+        const el = document.createElement('div');
+        el.className = 'msg-avatar user-avatar';
+        if (avatarPath) {
+            const img = document.createElement('img');
+            img.src   = avatarPath;
+            img.alt   = userName;
+            img.onerror = function () {
+                el.removeChild(img);
+                el.textContent = userName ? userName[0] : '我';
+            };
+            el.appendChild(img);
+        } else {
+            el.textContent = userName ? userName[0] : '我';
+        }
+        return el;
+    }
+
+    // =============================================
+    //  添加 AI 气泡
+    // =============================================
+    function appendAiBubble(callback) {
+        buildAiAvatarNode(function (avatarNode) {
+            const container = document.getElementById('chatMessages');
+            const row    = document.createElement('div');
+            row.className = 'chat-msg ai-msg';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-bubble ai-bubble';
+
+            const timeEl = document.createElement('span');
+            timeEl.className = 'msg-time';
+            timeEl.textContent = getNowTime();
+
+            const p = document.createElement('p');
+            bubble.appendChild(p);
+            bubble.appendChild(timeEl);
+
+            row.appendChild(avatarNode);
+            row.appendChild(bubble);
+            container.appendChild(row);
+            scrollChatToBottom();
+
+            if (callback) callback(p);
+        });
+    }
+
+    // =============================================
+    //  添加用户消息
+    // =============================================
+    function appendUserMessage(text) {
+        const container = document.getElementById('chatMessages');
+        const row    = document.createElement('div');
+        row.className = 'chat-msg user-msg';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-bubble user-bubble';
+
+        const p = document.createElement('p');
+        text.split('\n').forEach(function (line, idx) {
+            if (idx > 0) p.appendChild(document.createElement('br'));
+            p.appendChild(document.createTextNode(line));
+        });
+
+        const timeEl = document.createElement('span');
+        timeEl.className = 'msg-time';
+        timeEl.textContent = getNowTime();
+
+        bubble.appendChild(p);
+        bubble.appendChild(timeEl);
+
+        const avatarNode = buildUserAvatarNode();
+
+        row.appendChild(bubble);
+        row.appendChild(avatarNode);
+        container.appendChild(row);
+        scrollChatToBottom();
+    }
+
+    // =============================================
+    //  显示「思考中」气泡
+    // =============================================
+    function showThinking() {
+        buildAiAvatarNode(function (avatarNode) {
+            const container = document.getElementById('chatMessages');
+            const row = document.createElement('div');
+            row.className = 'chat-msg ai-msg';
+            row.id = 'thinkingBubble';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-bubble ai-bubble thinking-bubble';
+            bubble.innerHTML = '<div class="thinking-dots"><span></span><span></span><span></span></div>';
+
+            row.appendChild(avatarNode);
+            row.appendChild(bubble);
+            container.appendChild(row);
+            scrollChatToBottom();
+        });
+    }
+
+    function hideThinking() {
+        const el = document.getElementById('thinkingBubble');
+        if (el) el.remove();
+    }
+
+    // =============================================
+    //  欢迎语：打字机显示
+    // =============================================
+    function showWelcomeMessage() {
+        const welcomeText = `你好 ${userName}，我是 ${aiName}，很高兴和你聊天。`;
+        appendAiBubble(function (p) {
+            typewriter(p, welcomeText, 45);
+        });
+    }
+
+    // =============================================
+    //  清空并重置对话
+    // =============================================
+    function clearAndResetChat() {
+        document.getElementById('chatMessages').innerHTML = '';
+        chatConversationId = null;
+        showWelcomeMessage();
+    }
+    window.clearAndResetChat = clearAndResetChat;
+
+    // =============================================
+    //  FAB 拖拽逻辑
+    //  支持鼠标 & 触摸，拖拽结束后吸附边缘
+    //  展开窗口时确保完整显示在视口内
+    // =============================================
+    (function initDrag() {
+        const fab = document.getElementById('chatFab');
+        const WIN_W = 360;
+        const WIN_H = 520;
+        const FAB_SIZE = 62;
+        const MARGIN = 12; // 最小边距
+
+        let dragging = false;
+        let startX, startY, origLeft, origTop;
+        // fab 当前位置（left/top 形式，初始从 fixed right/bottom 换算）
+        let fabLeft = null;
+        let fabTop  = null;
+
+        function getInitialPos() {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            // 对应 CSS: bottom:32px right:32px
+            return {
+                left: vw - FAB_SIZE - 32,
+                top:  vh - FAB_SIZE - 32
+            };
+        }
+
+        function clampFab(left, top) {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            left = Math.max(MARGIN, Math.min(left, vw - FAB_SIZE - MARGIN));
+            top  = Math.max(MARGIN, Math.min(top,  vh - FAB_SIZE - MARGIN));
+            return { left, top };
+        }
+
+        function applyFabPos(left, top) {
+            fab.style.right  = 'auto';
+            fab.style.bottom = 'auto';
+            fab.style.left   = left + 'px';
+            fab.style.top    = top  + 'px';
+            fabLeft = left;
+            fabTop  = top;
+        }
+
+        // 计算聊天窗口应显示的位置（保证完全在视口内）
+        function getWindowPos(fabL, fabT) {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const GAP = 10; // FAB 与窗口之间的间隙
+
+            // 尝试在 FAB 上方偏左
+            let wLeft = fabL + FAB_SIZE / 2 - WIN_W + 16;
+            let wTop  = fabT - WIN_H - GAP;
+
+            // 横向夹紧
+            wLeft = Math.max(MARGIN, Math.min(wLeft, vw - WIN_W - MARGIN));
+            // 纵向：若上方放不下就放下方
+            if (wTop < MARGIN) {
+                wTop = fabT + FAB_SIZE + GAP;
+            }
+            // 下方也放不下则贴顶
+            if (wTop + WIN_H > vh - MARGIN) {
+                wTop = Math.max(MARGIN, vh - WIN_H - MARGIN);
+            }
+
+            return { left: wLeft, top: wTop };
+        }
+
+        function updateWindowPos() {
+            if (fabLeft === null) return;
+            const win = document.getElementById('chatWindow');
+            const pos = getWindowPos(fabLeft, fabTop);
+            win.style.right  = 'auto';
+            win.style.bottom = 'auto';
+            win.style.left   = pos.left + 'px';
+            win.style.top    = pos.top  + 'px';
+        }
+
+        function onPointerDown(e) {
+            // 只响应主按钮/单指
+            if (e.type === 'mousedown' && e.button !== 0) return;
+
+            // 初始化位置
+            if (fabLeft === null) {
+                const pos = getInitialPos();
+                fabLeft = pos.left;
+                fabTop  = pos.top;
+                applyFabPos(fabLeft, fabTop);
+            }
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            dragging = false;
+            startX   = clientX;
+            startY   = clientY;
+            origLeft = fabLeft;
+            origTop  = fabTop;
+
+            fab._pointerMoved = false;
+
+            document.addEventListener('mousemove', onPointerMove);
+            document.addEventListener('mouseup',   onPointerUp);
+            document.addEventListener('touchmove', onPointerMove, { passive: false });
+            document.addEventListener('touchend',  onPointerUp);
+        }
+
+        function onPointerMove(e) {
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+
+            if (!dragging && Math.sqrt(dx*dx + dy*dy) < 5) return;
+
+            dragging = true;
+            fab._pointerMoved = true;
+            if (e.cancelable) e.preventDefault();
+
+            const clamped = clampFab(origLeft + dx, origTop + dy);
+            applyFabPos(clamped.left, clamped.top);
+
+            if (chatOpen) updateWindowPos();
+        }
+
+        function onPointerUp(e) {
+            document.removeEventListener('mousemove', onPointerMove);
+            document.removeEventListener('mouseup',   onPointerUp);
+            document.removeEventListener('touchmove', onPointerMove);
+            document.removeEventListener('touchend',  onPointerUp);
+
+            if (!dragging) {
+                // 视为点击
+                toggleChatWindow();
+            } else {
+                // 吸附到左或右边缘
+                const vw = window.innerWidth;
+                const midX = fabLeft + FAB_SIZE / 2;
+                const snapLeft = midX < vw / 2
+                    ? MARGIN
+                    : vw - FAB_SIZE - MARGIN;
+
+                // 使用 CSS transition 完成吸附动画
+                fab.style.transition = 'left 0.3s cubic-bezier(.34,1.4,.64,1), top 0.2s ease';
+                applyFabPos(snapLeft, fabTop);
+                if (chatOpen) {
+                    setTimeout(updateWindowPos, 320);
+                }
+                setTimeout(function () {
+                    fab.style.transition = '';
+                }, 400);
+            }
+
+            dragging = false;
+        }
+
+        fab.addEventListener('mousedown',  onPointerDown);
+        fab.addEventListener('touchstart', onPointerDown, { passive: true });
+
+        // 阻止 onclick 冒泡（改用 pointerUp 判断点击）
+        fab.removeAttribute('onclick');
+
+        // 监听窗口大小变化，重新夹紧位置
+        window.addEventListener('resize', function () {
+            if (fabLeft !== null) {
+                const clamped = clampFab(fabLeft, fabTop);
+                applyFabPos(clamped.left, clamped.top);
+                if (chatOpen) updateWindowPos();
+            }
+        });
+
+        // 对外暴露 updateWindowPos
+        window._chatUpdateWindowPos = updateWindowPos;
+    })();
+
+    // =============================================
+    //  切换聊天窗口
+    // =============================================
+
+window.toggleChatWindow = function () {
+    chatOpen = !chatOpen;
+    const win     = document.getElementById('chatWindow');
+    const fab     = document.getElementById('chatFab');
+    const overlay = document.getElementById('chatOverlay');
+
+    if (chatOpen) {
+        // 先定位窗口再展开（避免闪烁）
+        if (window._chatUpdateWindowPos) window._chatUpdateWindowPos();
+
+        // 清空消息，重新显示欢迎语
+        document.getElementById('chatMessages').innerHTML = '';
+        chatConversationId = null;
+        showWelcomeMessage();
+
+        win.classList.add('chat-window--open');
+        // 直接设置内联样式隐藏按钮（最保险的方式）
+        fab.style.opacity = '0';
+        fab.style.pointerEvents = 'none';
+        fab.style.visibility = 'hidden';
+        
+        overlay.classList.add('chat-overlay--show');
+        
+        setTimeout(function () {
+            document.getElementById('chatInput').focus();
+        }, 300);
+    } else {
+        win.classList.remove('chat-window--open');
+        // 恢复内联样式
+        fab.style.opacity = '';
+        fab.style.pointerEvents = '';
+        fab.style.visibility = '';
+        
+        overlay.classList.remove('chat-overlay--show');
+    }
+};
+
+    // =============================================
+    //  键盘：Enter 发送
+    // =============================================
+    window.handleChatKeydown = function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendChatMessage();
+        }
+    };
+
+    // =============================================
+    //  输入框自动高度
+    // =============================================
+    window.autoResizeChatInput = function (el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    };
+
+    // =============================================
+    //  状态栏文字
+    // =============================================
+    function setStatus(html) {
+        const el = document.getElementById('chatStatus');
+        if (el) el.innerHTML = html;
+    }
+
+    // =============================================
+    //  发送消息
+    // =============================================
+    window.sendChatMessage = async function () {
+        if (chatLoading) return;
+
+        const input = document.getElementById('chatInput');
+        const text  = input.value.trim();
+        if (!text) return;
+
+        input.value = '';
+        input.style.height = 'auto';
+
+        chatLoading = true;
+        document.getElementById('chatSendBtn').disabled = true;
+        document.getElementById('chatSendBtn').style.opacity = '0.5';
+        setStatus('<span class="status-dot thinking"></span> 思考中...');
+
+        appendUserMessage(text);
+        showThinking();
+
+        try {
+            const resp = await fetch('/chat_api', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: text,
+                    conversation_id: chatConversationId
+                })
+            });
+            const data = await resp.json();
+            hideThinking();
+
+            if (data.success) {
+                if (data.conversation_id) chatConversationId = data.conversation_id;
+                appendAiBubble(function (p) {
+                    typewriter(p, data.reply || '（空回复）');
+                });
+            } else {
+                appendAiBubble(function (p) {
+                    typewriter(p, '抱歉，出了点问题：' + (data.error || '未知错误'));
+                });
+            }
+        } catch (err) {
+            hideThinking();
+            appendAiBubble(function (p) {
+                typewriter(p, '网络错误，请稍后重试 😢');
+            });
+        } finally {
+            chatLoading = false;
+            document.getElementById('chatSendBtn').disabled = false;
+            document.getElementById('chatSendBtn').style.opacity = '1';
+            setStatus('<span class="status-dot"></span> 在线');
+            document.getElementById('chatInput').focus();
+        }
+    };
+
+    // =============================================
+    //  页面加载完成后初始化像素化头像
+    // =============================================
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPixelAvatars);
+    } else {
+        initPixelAvatars();
+    }
+
+})();
+</script>
