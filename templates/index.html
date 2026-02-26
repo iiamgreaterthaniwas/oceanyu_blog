@@ -35,7 +35,7 @@
             {% if current_user %}
                 {{ current_user.username }}
                 {% if current_user.is_admin %}
-                
+
                 {% endif %}
             {% endif %}
         </h2>
@@ -63,8 +63,8 @@
                     <div class="post-date">
                        <img src="/static/img/calendar.png" alt="日历" style="width: 1.2em; height: 1.2em; vertical-align: middle; transform: translateY(-0.1em);" onerror="this.style.display='none'"> {{ post.date.strftime('%Y-%m-%d') }}
                        {% if post.author_user %}
-                       · <a href="{{ url_for('user_profile', user_id=post.user_id) }}" 
-                            onclick="event.stopPropagation()" 
+                       · <a href="{{ url_for('user_profile', user_id=post.user_id) }}"
+                            onclick="event.stopPropagation()"
                             style="color:#FDC2CC; text-decoration:none;">{{ post.author_user.username }}</a>
                        {% endif %}
                     </div>
@@ -109,7 +109,7 @@
     <div class="pagination-wrapper">
         <div class="pagination">
             {% if pagination.has_prev %}
-            <a href="{{ url_for('index', page=pagination.prev_num, search_title=search_title, search_date=search_date) }}" 
+            <a href="{{ url_for('index', page=pagination.prev_num, search_title=search_title, search_date=search_date) }}"
                class="pagination-btn prev-btn">
                 <span>← 上一页</span>
             </a>
@@ -122,35 +122,35 @@
             <div class="pagination-pages">
                 {% set start_page = [pagination.page - 2, 1]|max %}
                 {% set end_page = [pagination.page + 2, pagination.pages]|min %}
-                
+
                 {% if start_page > 1 %}
-                <a href="{{ url_for('index', page=1, search_title=search_title, search_date=search_date) }}" 
+                <a href="{{ url_for('index', page=1, search_title=search_title, search_date=search_date) }}"
                    class="pagination-num">1</a>
                 {% if start_page > 2 %}
                 <span class="pagination-ellipsis">...</span>
                 {% endif %}
                 {% endif %}
-                
+
                 {% for page_num in range(start_page, end_page + 1) %}
                     {% if page_num == pagination.page %}
                     <span class="pagination-num active">{{ page_num }}</span>
                     {% else %}
-                    <a href="{{ url_for('index', page=page_num, search_title=search_title, search_date=search_date) }}" 
+                    <a href="{{ url_for('index', page=page_num, search_title=search_title, search_date=search_date) }}"
                        class="pagination-num">{{ page_num }}</a>
                     {% endif %}
                 {% endfor %}
-                
+
                 {% if end_page < pagination.pages %}
                 {% if end_page < pagination.pages - 1 %}
                 <span class="pagination-ellipsis">...</span>
                 {% endif %}
-                <a href="{{ url_for('index', page=pagination.pages, search_title=search_title, search_date=search_date) }}" 
+                <a href="{{ url_for('index', page=pagination.pages, search_title=search_title, search_date=search_date) }}"
                    class="pagination-num">{{ pagination.pages }}</a>
                 {% endif %}
             </div>
 
             {% if pagination.has_next %}
-            <a href="{{ url_for('index', page=pagination.next_num, search_title=search_title, search_date=search_date) }}" 
+            <a href="{{ url_for('index', page=pagination.next_num, search_title=search_title, search_date=search_date) }}"
                class="pagination-btn next-btn">
                 <span>下一页 →</span>
             </a>
@@ -160,11 +160,11 @@
             </span>
             {% endif %}
         </div>
-        
+
         <div class="page-jump">
             <span>第 {{ pagination.page }} 页 / 共 {{ pagination.pages }} 页</span>
             <div class="jump-input">
-                <input type="number" id="jumpPageInput" min="1" max="{{ pagination.pages }}" 
+                <input type="number" id="jumpPageInput" min="1" max="{{ pagination.pages }}"
                        placeholder="" class="jump-input-field">
                 <button onclick="jumpToPage()" class="jump-btn">跳转</button>
             </div>
@@ -380,17 +380,17 @@
             margin-bottom: 6px !important;  /* 减小底部间距 */
             border-left-width: 2px !important;  /* 稍细的左边框 */
         }
-        
+
         /* 评论头部优化 */
         .comment-header {
             margin-bottom: 4px !important;  /* 减小头部底部间距 */
         }
-        
+
         /* 评论作者区域优化 */
         .comment-header > div:first-child {
             gap: 3px !important;  /* 减小作者区域元素间距 */
         }
-        
+
         /* 评论头像优化 */
         .comment-avatar {
             width: 22px !important;
@@ -406,28 +406,28 @@
             min-width: 22px !important;
             min-height: 22px !important;
         }
-        
+
         .comment-avatar-text {
             font-size: 0.7rem !important;
         }
-        
+
         /* 评论作者名称优化 */
         .comment-author {
             font-size: 11px !important;  /* 稍小的字体 */
             margin-right: 3px !important;
         }
-        
+
         /* 评论日期优化 */
         .comment-date {
             font-size: 10px !important;  /* 更小的日期字体 */
         }
-        
+
         /* 管理员图标优化 */
         .comment-author img[alt="大V"] {
             height: 1.2em !important;  /* 稍小的管理员图标 */
             top: -2px !important;
         }
-        
+
         /* 评论内容优化 */
         .comment-content {
             font-size: 13px !important;  /* 稍小的正文字体 */
@@ -435,129 +435,129 @@
             margin-bottom: 6px !important;  /* 减小底部间距 */
             padding-left: 2px !important;
         }
-        
+
         /* 评论操作按钮区域优化 */
         .comment-actions {
             gap: 2px !important;  /* 减小按钮间距 */
         }
-        
+
         .comment-actions button {
             padding: 3px 6px !important;  /* 减小按钮内边距 */
             font-size: 10px !important;  /* 更小的按钮字体 */
         }
-        
+
         /* 评论按钮图标优化 */
         .comment-edit-btn, .comment-delete-btn {
             font-size: 10px !important;
         }
-        
+
         /* 编辑/删除图标大小调整 */
         .comment-edit-btn:before, .comment-delete-btn:before {
             font-size: 11px !important;
         }
-        
+
         /* 无评论提示优化 */
         .no-comments {
             padding: 12px !important;  /* 减小内边距 */
             font-size: 13px !important;
         }
-        
+
         /* 评论标题优化 */
         .comments-title {
             margin-bottom: 10px !important;  /* 减小底部间距 */
             font-size: 14px !important;
         }
-        
+
         /* 评论列表容器优化 */
         .comments-list {
             max-height: 250px !important;  /* 稍微减小最大高度 */
         }
-        
+
         /* 评论弹窗中的用户信息优化 */
         .comment-user-info {
             padding: 6px 8px !important;  /* 减小内边距 */
             gap: 6px !important;
             margin-bottom: 8px !important;
         }
-        
+
         .comment-user-avatar {
             width: 30px !important;  /* 稍小的头像 */
             height: 30px !important;
         }
-        
+
         .comment-username {
             font-size: 12px !important;  /* 稍小的字体 */
         }
-        
+
         /* 评论表单优化 */
         .form-group {
             margin-bottom: 12px !important;  /* 减小底部间距 */
         }
-        
+
         .form-group label {
             margin-bottom: 4px !important;  /* 减小标签底部间距 */
             font-size: 13px !important;
         }
-        
+
         .form-group textarea {
             padding: 8px !important;  /* 减小内边距 */
             font-size: 13px !important;
             min-height: 70px !important;  /* 减小最小高度 */
         }
-        
+
         /* 表单按钮优化 */
         .form-actions {
             gap: 8px !important;  /* 减小按钮间距 */
         }
-        
+
         .submit-btn, .cancel-btn {
             padding: 8px 12px !important;  /* 减小按钮内边距 */
             font-size: 13px !important;
         }
-        
+
         /* 评论模态框内容优化 */
         .comment-modal .modal-body {
             padding: 15px !important;  /* 减小模态框内边距 */
         }
-        
+
         /* 评论模态框头部优化 */
         .comment-modal .modal-header {
             padding: 12px 15px !important;  /* 减小头部内边距 */
         }
-        
+
         .comment-modal .modal-header h3 {
             font-size: 16px !important;  /* 稍小的标题 */
         }
-        
+
         .comment-modal .close {
             font-size: 24px !important;  /* 稍小的关闭按钮 */
         }
     }
-    
+
     /* 针对小屏手机的进一步优化 */
     @media (max-width: 480px) {
         .comment-item {
             padding: 6px 8px !important;
         }
-        
+
         .comment-content {
             font-size: 12px !important;
             line-height: 1.3 !important;
         }
-        
+
         .comment-actions button {
             padding: 2px 5px !important;
             font-size: 9px !important;
         }
-        
+
         .comment-author {
             font-size: 10px !important;
         }
-        
+
         .comment-date {
             font-size: 9px !important;
         }
-        
+
         .comment-avatar {
             width: 20px !important;
             height: 20px !important;
@@ -1380,12 +1380,12 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                 } else {
                     avatarHtml = `<div class="comment-avatar" style="margin-right: 8px; width:28px; height:28px; min-width:28px; min-height:28px;"><span class="comment-avatar-text" style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #FDC2CC, #FFF1F3); border-radius: 50%; color: white; font-weight: bold;">${authorName[0]}</span></div>`;
                 }
-                
+
                 // 管理员图标
-                const adminIconHtml = data.is_admin 
+                const adminIconHtml = data.is_admin
                     ? `<img src="/static/img/dav.png" alt="大V" style="height: 1.2em; width: auto; vertical-align: middle; margin-left: 4px; display: inline-block;" onerror="this.style.display='none'">`
                     : '';
-                
+
                 // 更新authorInfo内容
                 authorInfoElement.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
@@ -1434,7 +1434,7 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
         function openPostModal(postId, title, content, imagePaths, tags, date, author, authorId, thumbPaths) {
             document.getElementById('modalTitle').textContent = title;
             document.getElementById('modalContent').textContent = content;
-            document.getElementById('modalDate').innerHTML = 
+            document.getElementById('modalDate').innerHTML =
                 '<img src="/static/img/calendar.png" alt="日历" style="width: 1.2em; height: 1.2em; vertical-align: middle;" onerror="this.style.display=\'none\'"> ' + date;
 
             // 显示作者信息 - 修改为包含头像和管理员图标
@@ -1670,7 +1670,7 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                             if (comment.can_edit) {
                                 // 判断是否为语音评论
                                 const isVoiceComment = comment.voice_path ? true : false;
-                                
+
                                 if (isVoiceComment) {
                                     // 语音评论只显示删除按钮
                                     actionsHtml = `
@@ -1763,10 +1763,10 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                 try {
                     const res = await fetch('/upload_voice', { method: 'POST', body: vForm });
                     const vData = await res.json();
-                    if (!vData.success) { 
-                        showMessage('语音上传失败: ' + vData.message, 'error'); 
+                    if (!vData.success) {
+                        showMessage('语音上传失败: ' + vData.message, 'error');
                         clearRecordingResources();
-                        return; 
+                        return;
                     }
                     voicePath = vData.voice_path;
                     voiceDuration = vData.duration;
@@ -1793,7 +1793,7 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                     // 成功发送后，释放录音资源
                     clearRecordingResources();
                     clearVoiceRecording();
-                    
+
                     closeCommentModal();
                     loadComments(currentPostId);
                     showMessage(isEdit ? '评论编辑成功！' : '评论添加成功！', 'success');
@@ -1823,10 +1823,10 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                 const postData = JSON.parse(element.dataset.post);
                 if (!postData || !postData.id) throw new Error('文章数据无效');
                 currentPostId = parseInt(postData.id);
-                
+
                 // 生成缩略图路径列表
                 const thumbPaths = (postData.images || []).map(imgPath => getThumbPath(imgPath));
-                
+
                 openPostModal(
                     postData.id,
                     postData.title,
@@ -1911,7 +1911,7 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
     function startRecording() {
     // 防止重复触发
     if (audioContext) return;
-    
+
     // 用特殊占位值标记"正在启动"
     audioContext = 'pending';
     clearVoiceRecording();
@@ -1928,7 +1928,7 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
         return;
     }
 
-   
+
     function doRecord(stream) {
         // stopRecording 已经把 audioContext 从 'pending' 清为 null，说明用户已松手，放弃
         if (audioContext !== 'pending') return;
@@ -1984,12 +1984,12 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
 
 function stopRecording() {
     // 若还在 pending 阶段，清掉占位让 doRecord 检测到后退出
-    if (audioContext === 'pending') { 
-        audioContext = null; 
-        return; 
+    if (audioContext === 'pending') {
+        audioContext = null;
+        return;
     }
     if (!audioContext || !recordingStream) return;
-    
+
     // 最短录音 300ms，防止 touchstart/touchend 同帧触发误停
     if (recordingStartTime && Date.now() - recordingStartTime < 300) {
         // 录音太短，清理资源
@@ -2001,7 +2001,7 @@ function stopRecording() {
     var chunks = pcmChunks;
     var sr = sampleRate;
     var startTime = recordingStartTime;
-    
+
     // 清理录音相关资源
     clearRecordingResources();
 
@@ -2018,32 +2018,32 @@ function stopRecording() {
     for (var i = 0; i < chunks.length; i++) { merged.set(chunks[i], offset); offset += chunks[i].length; }
     recordedBlob = encodeWAV(merged, sr);
     document.getElementById('voiceRecordStatus').textContent = '';
-    
+
     // 自动提交语音评论
     submitVoiceComment();
 }
 function clearRecordingResources() {
     if (audioContext) {
-        try { 
+        try {
             if (audioContext._processor) audioContext._processor.onaudioprocess = null;
             if (audioContext._source) audioContext._source.disconnect();
             if (audioContext._processor) audioContext._processor.disconnect();
-            audioContext.close().catch(function(){}); 
+            audioContext.close().catch(function(){});
         } catch(e2) {}
         audioContext = null;
     }
-    
+
     if (recordingStream) {
         recordingStream.getTracks().forEach(track => track.stop());
         recordingStream = null;
     }
-    
+
     pcmChunks = [];
     clearInterval(recordingTimer);
-    
+
     var btn = document.getElementById('voiceRecordBtn');
     if (btn) btn.classList.remove('recording');
-    
+
     // 清除录音开始时间
     recordingStartTime = null;
 }
@@ -2119,15 +2119,15 @@ function clearRecordingResources() {
 
     function submitVoiceComment() {
     var postId = parseInt(document.getElementById('commentPostId').value);
-    if (!postId || isNaN(postId)) { 
-        showMessage('请先打开评论框', 'error'); 
+    if (!postId || isNaN(postId)) {
+        showMessage('请先打开评论框', 'error');
         clearRecordingResources();
-        return; 
+        return;
     }
-    if (!recordedBlob) { 
-        showMessage('没有录音内容', 'error'); 
+    if (!recordedBlob) {
+        showMessage('没有录音内容', 'error');
         clearRecordingResources();
-        return; 
+        return;
     }
 
     document.getElementById('voiceRecordStatus').textContent = '上传中...';
@@ -2139,10 +2139,10 @@ function clearRecordingResources() {
     fetch('/upload_voice', { method: 'POST', body: vForm })
     .then(function(res) { return res.json(); })
     .then(function(vData) {
-        if (!vData.success) { 
-            showMessage('语音上传失败: ' + vData.message, 'error'); 
+        if (!vData.success) {
+            showMessage('语音上传失败: ' + vData.message, 'error');
             clearRecordingResources();
-            return; 
+            return;
         }
         var data = {
             post_id: postId,
@@ -2162,7 +2162,7 @@ function clearRecordingResources() {
             // 成功发送后，确保释放所有录音资源
             clearRecordingResources();
             clearVoiceRecording();
-            
+
             closeCommentModal();
             loadComments(currentPostId);
             showMessage('语音评论发送成功！', 'success');

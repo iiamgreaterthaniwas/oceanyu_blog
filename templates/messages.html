@@ -1,0 +1,361 @@
+{% extends 'base_no_search.html' %}
+{% block title %}消息 - CRAZYBLOG{% endblock %}
+
+{% block content %}
+<div class="social-page">
+  {% include 'bottom_nav.html' %}
+
+  <div class="social-header">
+    <h2 class="social-title">💬 最近消息</h2>
+  </div>
+
+  {% if conversations %}
+  <div class="conversation-list">
+    {% for conv in conversations %}
+    <a href="{{ url_for('chat', friend_id=conv.friend.id) }}" class="conv-item">
+      {# ── 头像容器：使用独立包裹层，让角标可以溢出 ── #}
+      <div class="conv-avatar-wrap">
+        <div class="conv-avatar">
+          {% if conv.friend.avatar_path %}
+          <img src="/static/{{ conv.friend.avatar_path }}" alt="头像" loading="lazy">
+          {% else %}
+          <span>{{ conv.friend.username[0] }}</span>
+          {% endif %}
+        </div>
+        {% if conv.unread_count > 0 %}
+        <span class="conv-badge">{{ conv.unread_count if conv.unread_count < 100 else '99+' }}</span>
+        {% endif %}
+      </div>
+
+      <div class="conv-body">
+        <div class="conv-top">
+          <span class="conv-name">{{ conv.friend.username }}</span>
+          {% if conv.last_msg %}
+          <span class="conv-time">{{ conv.last_msg.created_at.strftime('%m-%d %H:%M') }}</span>
+          {% endif %}
+        </div>
+        <div class="conv-preview">
+          {% if conv.last_msg %}
+            {% if conv.last_msg.forwarded_post_id %}
+            <span>🔁 转发了一篇博客</span>
+            {% elif conv.last_msg.image_path %}
+            <span>🖼️ 图片</span>
+            {% else %}
+            <span>{{ conv.last_msg.content[:40] }}</span>
+            {% endif %}
+          {% else %}
+          <span style="color:#ccc">还没有消息，快打个招呼吧~</span>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">💌</div>
+    <p>还没有消息</p>
+    <p class="empty-sub">去<a href="{{ url_for('contacts') }}">联系人</a>找好友聊天吧~</p>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.social-page {
+  padding-bottom: 80px;
+}
+
+.social-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.social-title {
+  font-size: 1.6rem;
+  background: linear-gradient(135deg, #ff9eb5, #ffb6c1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 会话列表 */
+.conversation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+@media (max-width: 768px) {
+    .main-content {
+        margin-top: 70px !important;
+    }
+    
+    .social-page {
+        padding-top: 0;
+    }
+}
+/* 会话项 */
+.conv-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: transparent;
+  border-radius: 16px;
+  text-decoration: none;
+  color: white;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.conv-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: inherit;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.conv-item:hover {
+  transform: translateX(4px);
+}
+
+.conv-item:hover::before {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── 头像包裹层：不裁剪，让角标自由悬浮 ── */
+.conv-avatar-wrap {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+/* 头像本体：圆形裁剪只作用于图片 */
+.conv-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;           /* overflow:hidden 限制在此层，不影响角标 */
+  background: linear-gradient(135deg, #ffb6c1, #ff9eb5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.conv-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.conv-avatar span {
+  color: white;
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ── 未读角标：悬浮在包裹层右上角，不受 overflow:hidden 影响 ── */
+.conv-badge {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  background: linear-gradient(135deg, #ff4d6d, #ff8fab);
+  color: white;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  min-width: 20px;
+  text-align: center;
+  line-height: 1.3;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(255, 77, 109, 0.5);
+  animation: pulse 2s infinite;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+@keyframes pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* 会话主体 */
+.conv-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.conv-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.conv-name {
+  font-weight: 600;
+  color: white;
+  font-size: 1rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.conv-time {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: 12px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.conv-preview {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.conv-preview span {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 10px;
+  border-radius: 15px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 100px 20px;
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.empty-state::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.9;
+  filter: drop-shadow(0 4px 10px rgba(255, 182, 193, 0.3));
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.empty-sub {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.empty-sub a {
+  color: #ffb6c1;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 182, 193, 0.2);
+  transition: all 0.3s ease;
+}
+
+.empty-sub a:hover {
+  background: rgba(255, 182, 193, 0.3);
+  color: white;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .social-page { padding-bottom: 70px; }
+
+  .conv-item { padding: 12px 14px; }
+
+  .conv-avatar-wrap,
+  .conv-avatar { width: 48px; height: 48px; }
+
+  .conv-avatar span { font-size: 1.1rem; }
+  .conv-name { font-size: 0.95rem; }
+  .conv-time { font-size: 0.7rem; padding: 2px 6px; }
+  .conv-preview { font-size: 0.8rem; }
+  .conv-preview span { padding: 2px 8px; }
+}
+
+@media (max-width: 480px) {
+  .conv-item { padding: 10px 12px; gap: 10px; }
+
+  .conv-avatar-wrap,
+  .conv-avatar { width: 44px; height: 44px; }
+
+  .conv-badge { font-size: 0.65rem; padding: 2px 6px; min-width: 18px; }
+
+  .empty-state { padding: 80px 15px; }
+  .empty-icon { font-size: 3.5rem; }
+  .empty-state p { font-size: 1rem; }
+}
+
+/* 降级处理 */
+@supports not (backdrop-filter: blur(10px)) {
+  .conv-item::before { background: rgba(255, 255, 255, 0.4); }
+  .empty-state::before { background: rgba(255, 255, 255, 0.3); }
+}
+
+/* 进场动画 */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.conv-item { animation: fadeInUp 0.4s ease forwards; }
+.conv-item:nth-child(1)  { animation-delay: 0.05s; }
+.conv-item:nth-child(2)  { animation-delay: 0.1s; }
+.conv-item:nth-child(3)  { animation-delay: 0.15s; }
+.conv-item:nth-child(4)  { animation-delay: 0.2s; }
+.conv-item:nth-child(5)  { animation-delay: 0.25s; }
+.conv-item:nth-child(6)  { animation-delay: 0.3s; }
+.conv-item:nth-child(7)  { animation-delay: 0.35s; }
+.conv-item:nth-child(8)  { animation-delay: 0.4s; }
+.conv-item:nth-child(9)  { animation-delay: 0.45s; }
+.conv-item:nth-child(10) { animation-delay: 0.5s; }
+</style>
+{% endblock %}

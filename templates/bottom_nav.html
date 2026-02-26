@@ -1,0 +1,100 @@
+<nav class="bottom-nav">
+    <a href="{{ url_for('friend_posts') }}" class="bottom-nav-item {% if request.endpoint == 'friend_posts' %}active{% endif %}">
+      <div class="bottom-nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <span>好友博客</span>
+    </a>
+    <a href="{{ url_for('messages_list') }}" class="bottom-nav-item {% if request.endpoint in ['messages_list', 'chat'] %}active{% endif %}">
+      <div class="bottom-nav-icon" style="position:relative">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        {% if unread_total and unread_total > 0 %}
+        <span class="nav-badge">{{ unread_total if unread_total < 100 else '99+' }}</span>
+        {% endif %}
+      </div>
+      <span>消息</span>
+    </a>
+    <a href="{{ url_for('contacts') }}" class="bottom-nav-item {% if request.endpoint == 'contacts' %}active{% endif %}">
+      <div class="bottom-nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <span>联系人</span>
+    </a>
+    <a href="{{ url_for('index') }}" class="bottom-nav-item {% if request.endpoint == 'index' %}active{% endif %}">
+      <div class="bottom-nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <span>主页</span>
+    </a>
+  </nav>
+  
+  <style>
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.1);  /* 改为与顶部导航栏相同的透明度 */
+    backdrop-filter: blur(10px);  /* 改为与顶部导航栏相同的模糊值 */
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);  /* 添加与顶部导航栏相同的边框 */
+    box-shadow: none;  /* 移除原来的阴影，或保留但调整 */
+    z-index: 500;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    text-decoration: none;
+    color: #bbb;
+    font-size: 0.68rem;
+    padding: 8px 16px;
+    border-radius: 12px;
+    transition: all 0.2s;
+    min-width: 60px;
+  }
+  
+  .bottom-nav-item.active {
+    color: #ff9eb5;
+  }
+  
+  .bottom-nav-item.active .bottom-nav-icon svg {
+    stroke: #ff9eb5;
+    filter: drop-shadow(0 2px 4px rgba(255, 158, 181, 0.4));
+  }
+  
+  .bottom-nav-item:hover {
+    color: #ff9eb5;
+  }
+  
+  .nav-badge {
+    position: absolute;
+    top: -4px;
+    right: -8px;
+    background: #ff4d6d;
+    color: white;
+    border-radius: 10px;
+    font-size: 0.6rem;
+    padding: 1px 5px;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1.4;
+  }
+  
+  </style>
+  

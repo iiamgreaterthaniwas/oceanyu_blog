@@ -1,0 +1,709 @@
+{% extends 'base_no_search.html' %}
+{% block title %}联系人 - CRAZYBLOG{% endblock %}
+
+{% block content %}
+<div class="social-page">
+  {% include 'bottom_nav.html' %}
+
+  <div class="social-header">
+    <h2 class="social-title">👥 联系人</h2>
+  </div>
+
+  <!-- 搜索添加好友 -->
+  <div class="search-friend-card">
+    <div class="search-label">搜索用户</div>
+    <div class="search-row">
+      <input type="text" id="userSearchInput" class="search-input" placeholder="输入用户名搜索..." oninput="debounceSearch()">
+      <button onclick="clearSearch()" class="clear-btn" id="clearSearchBtn" style="display:none">✕</button>
+    </div>
+    <div id="searchResults" class="search-results"></div>
+  </div>
+
+  <!-- 好友请求 -->
+  {% if pending_received %}
+  <div class="section-card">
+    <div class="section-title">
+      <span>💌 好友请求</span>
+      <span class="badge-count">{{ pending_received|length }}</span>
+    </div>
+    {% for f in pending_received %}
+    <div class="contact-item" id="req-{{ f.id }}">
+      <a href="{{ url_for('user_profile', user_id=f.requester.id) }}" class="contact-avatar-link">
+        <div class="contact-avatar">
+          {% if f.requester.avatar_path %}
+          <img src="/static/{{ f.requester.avatar_path }}" alt="头像" loading="lazy">
+          {% else %}
+          <span>{{ f.requester.username[0] }}</span>
+          {% endif %}
+        </div>
+      </a>
+      <div class="contact-info">
+        <span class="contact-name">{{ f.requester.username }}</span>
+        <span class="contact-bio">{{ f.requester.bio[:30] if f.requester.bio else '' }}</span>
+      </div>
+      <div class="contact-actions">
+        <button class="btn-accept" onclick="acceptFriend({{ f.id }})">接受</button>
+        <button class="btn-reject" onclick="rejectFriend({{ f.id }})">拒绝</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- 已发送请求 -->
+  {% if pending_sent %}
+  <div class="section-card">
+    <div class="section-title">⏳ 等待回应</div>
+    {% for f in pending_sent %}
+    <div class="contact-item">
+      <div class="contact-avatar">
+        {% if f.receiver.avatar_path %}
+        <img src="/static/{{ f.receiver.avatar_path }}" alt="头像" loading="lazy">
+        {% else %}
+        <span>{{ f.receiver.username[0] }}</span>
+        {% endif %}
+      </div>
+      <div class="contact-info">
+        <span class="contact-name">{{ f.receiver.username }}</span>
+        <span class="contact-bio pending-tag">请求待确认</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- 好友列表 -->
+  <div class="section-card">
+    <div class="section-title">
+      <span>我的好友</span>
+      <span class="friend-count">{{ friends|length }} 人</span>
+    </div>
+    {% if friends %}
+    {% for friend in friends %}
+    <div class="contact-item" id="friend-{{ friend.id }}">
+      <a href="{{ url_for('user_profile', user_id=friend.id) }}" class="contact-avatar-link">
+        <div class="contact-avatar">
+          {% if friend.avatar_path %}
+          <img src="/static/{{ friend.avatar_path }}" alt="头像" loading="lazy">
+          {% else %}
+          <span>{{ friend.username[0] }}</span>
+          {% endif %}
+        </div>
+      </a>
+      <div class="contact-info">
+        <span class="contact-name">{{ friend.username }}</span>
+        <span class="contact-bio">{{ friend.bio[:40] if friend.bio else '' }}</span>
+      </div>
+      <div class="contact-actions">
+        <a href="{{ url_for('chat', friend_id=friend.id) }}" class="btn-chat">聊天</a>
+        <button class="btn-remove" onclick="removeFriend({{ friend.id }}, '{{ friend.username }}')">删除</button>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-friends">
+      <p>还没有好友，去搜索添加吧~</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.social-page { padding-bottom: 90px; }
+.social-header { text-align: center; margin-bottom: 20px; }
+.social-title { font-size: 1.6rem; background: linear-gradient(135deg, #ff9eb5, #ffb6c1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* 搜索卡片 - 使用与个人信息卡片相同的毛玻璃效果 */
+.search-friend-card {
+    position: relative;
+    background: transparent;
+    border-radius: 20px;
+    padding: 18px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+
+.search-friend-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: inherit;
+    transition: backdrop-filter 0.3s ease, background 0.3s ease;
+}
+
+/* 好友卡片 - 使用与博客卡片相同的毛玻璃效果 */
+.section-card {
+    position: relative;
+    background: transparent;
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+@media (max-width: 768px) {
+    .main-content {
+        margin-top: 70px !important;
+    }
+    
+    .social-page {
+        padding-top: 0;  /* 调整内边距 */
+    }
+}
+.section-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: inherit;
+    transition: backdrop-filter 0.3s ease, background 0.3s ease;
+}
+
+/* 卡片悬停效果 */
+.section-card:hover,
+.search-friend-card:hover {
+    transform: translateY(-3px);
+}
+
+.section-card:hover::before,
+.search-friend-card:hover::before {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+}
+
+/* 搜索标签 */
+.search-label {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 10px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* 搜索行 */
+.search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 搜索输入框 */
+.search-input {
+    flex: 1;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 25px;
+    padding: 12px 18px;
+    font-size: 0.95rem;
+    outline: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 300;
+}
+
+.search-input:focus {
+    border-color: rgba(255, 182, 193, 0.8);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(255, 182, 193, 0.2);
+}
+
+/* 清空按钮 */
+.clear-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 8px 14px;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.clear-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+/* 搜索结果区域 */
+.search-results {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* 分区标题 */
+.section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 徽章计数 */
+.badge-count {
+    background: linear-gradient(135deg, #ff8fab, #ff4d6d);
+    color: white;
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(255, 77, 109, 0.3);
+}
+
+/* 好友计数 */
+.friend-count {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: normal;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 3px 10px;
+    border-radius: 15px;
+}
+
+/* 联系人项 */
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background 0.2s ease;
+    border-radius: 12px;
+}
+
+.contact-item:last-child {
+    border-bottom: none;
+    padding-bottom: 8px;
+}
+
+.contact-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* 联系人头像链接 */
+.contact-avatar-link {
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+/* 联系人头像 */
+.contact-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, #ffb6c1, #ff9eb5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.contact-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.contact-avatar span {
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 联系人信息 */
+.contact-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.contact-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.contact-bio {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 等待中标签 */
+.pending-tag {
+    color: #ffd966;
+    font-weight: 500;
+}
+
+/* 联系人操作按钮区域 */
+.contact-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* 接受按钮 */
+.btn-accept {
+    background: linear-gradient(135deg, #ffb6c1, #ff8fab);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(255, 143, 171, 0.3);
+}
+
+.btn-accept:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 143, 171, 0.4);
+}
+
+/* 拒绝按钮 */
+.btn-reject {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-reject:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* 聊天按钮 */
+.btn-chat {
+    background: linear-gradient(135deg, #ffb6c1, #ff8fab);
+    color: white;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(255, 143, 171, 0.3);
+}
+
+.btn-chat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 143, 171, 0.4);
+    color: white;
+}
+
+/* 删除按钮 */
+.btn-remove {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-remove:hover {
+    background: rgba(255, 77, 109, 0.3);
+    border-color: rgba(255, 77, 109, 0.5);
+    transform: translateY(-2px);
+}
+
+/* 添加按钮 */
+.btn-add {
+    background: linear-gradient(135deg, #ffb6c1, #ff8fab);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(255, 143, 171, 0.3);
+}
+
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 143, 171, 0.4);
+}
+
+/* 等待中按钮 */
+.btn-pending {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: default;
+}
+
+/* 空好友状态 */
+.empty-friends {
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    font-style: italic;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .search-friend-card {
+        padding: 15px;
+    }
+
+    .section-card {
+        padding: 14px;
+    }
+
+    .contact-item {
+        padding: 10px 5px;
+        gap: 10px;
+    }
+
+    .contact-avatar {
+        width: 42px;
+        height: 42px;
+    }
+
+    .contact-avatar span {
+        font-size: 1rem;
+    }
+
+    .contact-name {
+        font-size: 0.95rem;
+    }
+
+    .contact-bio {
+        font-size: 0.75rem;
+    }
+
+    .contact-actions {
+        gap: 5px;
+    }
+
+    .btn-accept, .btn-reject, .btn-chat, .btn-remove, .btn-add, .btn-pending {
+        padding: 5px 12px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .contact-item {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .contact-info {
+        min-width: calc(100% - 60px);
+    }
+
+    .contact-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 5px;
+    }
+
+    .search-input {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+
+    .clear-btn {
+        padding: 6px 12px;
+    }
+}
+
+/* 降级处理 - 不支持 backdrop-filter 的浏览器 */
+@supports not (backdrop-filter: blur(10px)) {
+    .search-friend-card::before,
+    .section-card::before {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    .search-friend-card,
+    .section-card {
+        background: rgba(255, 255, 255, 0.2);
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.search-friend-card,
+.section-card,
+.contact-item {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.search-friend-card {
+    animation-delay: 0.1s;
+}
+
+.section-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.section-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.section-card:nth-child(4) {
+    animation-delay: 0.4s;
+}
+</style>
+
+<script>
+let searchTimer = null;
+
+function debounceSearch() {
+  const q = document.getElementById('userSearchInput').value.trim();
+  document.getElementById('clearSearchBtn').style.display = q ? 'block' : 'none';
+  clearTimeout(searchTimer);
+  if (!q) { document.getElementById('searchResults').innerHTML = ''; return; }
+  searchTimer = setTimeout(() => searchUsers(q), 400);
+}
+
+async function searchUsers(q) {
+  const resp = await fetch(`/search_users?q=${encodeURIComponent(q)}`);
+  const data = await resp.json();
+  const el = document.getElementById('searchResults');
+  if (!data.users.length) { el.innerHTML = '<p style="color:#ccc;font-size:0.85rem;text-align:center;padding:8px">没有找到用户</p>'; return; }
+  el.innerHTML = data.users.map(u => `
+    <div class="contact-item" id="search-user-${u.id}">
+      <a href="/user/${u.id}" class="contact-avatar-link">
+        <div class="contact-avatar">
+          ${u.avatar ? `<img src="${u.avatar}" alt="">` : `<span>${u.username[0]}</span>`}
+        </div>
+      </a>
+      <div class="contact-info">
+        <span class="contact-name">${u.username}</span>
+        <span class="contact-bio">${u.bio || ''}</span>
+      </div>
+      <div class="contact-actions">
+        ${getAddBtn(u)}
+      </div>
+    </div>
+  `).join('');
+}
+
+function getAddBtn(u) {
+  if (u.friendship_status === 'accepted') return '<span class="btn-pending">已是好友</span>';
+  if (u.friendship_status === 'pending') return '<span class="btn-pending">已发送</span>';
+  return `<button class="btn-add" onclick="addFriend(${u.id}, this)">添加</button>`;
+}
+
+async function addFriend(userId, btn) {
+  const resp = await fetch(`/add_friend/${userId}`, { method: 'POST' });
+  const data = await resp.json();
+  if (data.success) {
+    btn.textContent = '已发送'; btn.className = 'btn-pending'; btn.disabled = true;
+    showToast('好友请求已发送 💕');
+  } else { showToast(data.error); }
+}
+
+async function acceptFriend(friendshipId) {
+  const resp = await fetch(`/accept_friend/${friendshipId}`, { method: 'POST' });
+  const data = await resp.json();
+  if (data.success) {
+    const el = document.getElementById(`req-${friendshipId}`);
+    if (el) el.remove();
+    showToast(data.message + ' 🌸');
+    setTimeout(() => location.reload(), 1200);
+  }
+}
+
+async function rejectFriend(friendshipId) {
+  const resp = await fetch(`/reject_friend/${friendshipId}`, { method: 'POST' });
+  const data = await resp.json();
+  if (data.success) {
+    const el = document.getElementById(`req-${friendshipId}`);
+    if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }
+  }
+}
+
+async function removeFriend(userId, username) {
+  if (!confirm(`确认删除好友 ${username}？`)) return;
+  const resp = await fetch(`/remove_friend/${userId}`, { method: 'POST' });
+  const data = await resp.json();
+  if (data.success) {
+    const el = document.getElementById(`friend-${userId}`);
+    if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }
+    showToast('已删除好友');
+  }
+}
+
+function clearSearch() {
+  document.getElementById('userSearchInput').value = '';
+  document.getElementById('searchResults').innerHTML = '';
+  document.getElementById('clearSearchBtn').style.display = 'none';
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(255,182,193,0.95);color:white;padding:10px 20px;border-radius:20px;font-size:0.9rem;z-index:9999;box-shadow:0 4px 15px rgba(255,182,193,0.4)';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+</script>
+{% endblock %}

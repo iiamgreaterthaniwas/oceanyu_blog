@@ -108,3 +108,39 @@ class Post(db.Model):
 
     def __repr__(self):
         return f'<Post {self.title}>'
+
+class Friendship(db.Model):
+    """好友关系表"""
+    id = db.Column(db.Integer, primary_key=True)
+    requester_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    status = db.Column(db.Enum('pending', 'accepted', 'rejected'), default='pending', nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    requester = db.relationship('User', foreign_keys=[requester_id], backref='sent_friend_requests')
+    receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_friend_requests')
+
+    def __repr__(self):
+        return f'<Friendship {self.requester_id}->{self.receiver_id} [{self.status}]>'
+
+
+class Message(db.Model):
+    """私信消息表"""
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=True)           # 文字内容
+    image_path = db.Column(db.String(500), nullable=True)  # 图片原图路径
+    thumb_path = db.Column(db.String(500), nullable=True)  # 图片缩略图路径
+    forwarded_post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=True)  # 转发的博客ID
+    is_deleted_by_sender = db.Column(db.Boolean, default=False)
+    is_deleted_by_receiver = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, nullable=False, default=False)
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
+    receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
+    forwarded_post = db.relationship('Post', foreign_keys=[forwarded_post_id], backref='forwarded_messages')
+
+    def __repr__(self):
+        return f'<Message {self.sender_id}->{self.receiver_id}>'

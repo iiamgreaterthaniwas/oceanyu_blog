@@ -53,6 +53,20 @@
         {% if current_user and current_user.id == profile_user.id %}
         <p style="font-size:0.75rem; color:#bbb; margin-top:0.5rem;">点击编辑个人资料</p>
         {% endif %}
+
+        {# ── 好友操作按钮（访问他人主页时显示） ── #}
+        {% if current_user and current_user.id != profile_user.id %}
+        <div class="profile-friend-action" style="margin-top: 1.2rem;">
+          {% if friendship_status == 'accepted' %}
+            <button class="friend-btn friend-btn--done" disabled>✅ 已是好友</button>
+            <a href="{{ url_for('chat', friend_id=profile_user.id) }}" class="friend-btn friend-btn--chat" onclick="event.stopPropagation()">💬 发消息</a>
+          {% elif friendship_status == 'pending' %}
+            <button class="friend-btn friend-btn--pending" disabled>⏳ 请求已发送</button>
+          {% else %}
+            <button class="friend-btn friend-btn--add" id="addFriendBtn" onclick="event.stopPropagation(); addFriendFromProfile({{ profile_user.id }})">➕ 添加好友</button>
+          {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- 用户的博客列表 - 完全仿照index.html的卡片布局，并添加分页 -->
@@ -119,7 +133,7 @@
         <div class="pagination-wrapper">
             <div class="pagination">
                 {% if pagination.has_prev %}
-                <a href="{{ url_for('user_profile', user_id=profile_user.id, page=pagination.prev_num) }}" 
+                <a href="{{ url_for('user_profile', user_id=profile_user.id, page=pagination.prev_num) }}"
                    class="pagination-btn prev-btn">
                     <span>← 上一页</span>
                 </a>
@@ -132,35 +146,35 @@
                 <div class="pagination-pages">
                     {% set start_page = [pagination.page - 2, 1]|max %}
                     {% set end_page = [pagination.page + 2, pagination.pages]|min %}
-                    
+
                     {% if start_page > 1 %}
-                    <a href="{{ url_for('user_profile', user_id=profile_user.id, page=1) }}" 
+                    <a href="{{ url_for('user_profile', user_id=profile_user.id, page=1) }}"
                        class="pagination-num">1</a>
                     {% if start_page > 2 %}
                     <span class="pagination-ellipsis">...</span>
                     {% endif %}
                     {% endif %}
-                    
+
                     {% for page_num in range(start_page, end_page + 1) %}
                         {% if page_num == pagination.page %}
                         <span class="pagination-num active">{{ page_num }}</span>
                         {% else %}
-                        <a href="{{ url_for('user_profile', user_id=profile_user.id, page=page_num) }}" 
+                        <a href="{{ url_for('user_profile', user_id=profile_user.id, page=page_num) }}"
                            class="pagination-num">{{ page_num }}</a>
                         {% endif %}
                     {% endfor %}
-                    
+
                     {% if end_page < pagination.pages %}
                     {% if end_page < pagination.pages - 1 %}
                     <span class="pagination-ellipsis">...</span>
                     {% endif %}
-                    <a href="{{ url_for('user_profile', user_id=profile_user.id, page=pagination.pages) }}" 
+                    <a href="{{ url_for('user_profile', user_id=profile_user.id, page=pagination.pages) }}"
                        class="pagination-num">{{ pagination.pages }}</a>
                     {% endif %}
                 </div>
 
                 {% if pagination.has_next %}
-                <a href="{{ url_for('user_profile', user_id=profile_user.id, page=pagination.next_num) }}" 
+                <a href="{{ url_for('user_profile', user_id=profile_user.id, page=pagination.next_num) }}"
                    class="pagination-btn next-btn">
                     <span>下一页 →</span>
                 </a>
@@ -170,11 +184,11 @@
                 </span>
                 {% endif %}
             </div>
-            
+
             <div class="page-jump">
                 <span>第 {{ pagination.page }} 页 / 共 {{ pagination.pages }} 页</span>
                 <div class="jump-input">
-                    <input type="number" id="jumpPageInput" min="1" max="{{ pagination.pages }}" 
+                    <input type="number" id="jumpPageInput" min="1" max="{{ pagination.pages }}"
                            placeholder="" class="jump-input-field">
                     <button onclick="jumpToPage({{ profile_user.id }})" class="jump-btn">跳转</button>
                 </div>
@@ -633,14 +647,14 @@
     flex-shrink: 0;
 }
 
-.pagination-btn:hover:not(.disabled) { 
-    transform: translateY(-2px); 
-    box-shadow: 0 4px 12px rgba(253, 194, 204, 0.4); 
+.pagination-btn:hover:not(.disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(253, 194, 204, 0.4);
 }
-.pagination-btn.disabled { 
-    opacity: 0.5; 
-    cursor: not-allowed; 
-    background: rgba(255, 255, 255, 0.3); 
+.pagination-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .pagination-pages {
@@ -671,9 +685,9 @@
     flex-shrink: 0;
 }
 
-.pagination-num:hover { 
-    background: rgba(253, 194, 204, 0.6); 
-    transform: scale(1.1); 
+.pagination-num:hover {
+    background: rgba(253, 194, 204, 0.6);
+    transform: scale(1.1);
 }
 .pagination-num.active {
     background: linear-gradient(135deg, #FDC2CC 0%, #FFF1F3 100%);
@@ -683,25 +697,25 @@
     box-shadow: 0 2px 8px rgba(253, 194, 204, 0.4);
 }
 
-.pagination-ellipsis { 
-    color: #666; 
-    font-weight: 500; 
-    padding: 0 4px; 
-    flex-shrink: 0; 
+.pagination-ellipsis {
+    color: #666;
+    font-weight: 500;
+    padding: 0 4px;
+    flex-shrink: 0;
 }
 
-.page-jump { 
-    display: flex; 
-    align-items: center; 
-    gap: 15px; 
-    font-size: 14px; 
-    color: #666; 
+.page-jump {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 14px;
+    color: #666;
 }
 
-.jump-input { 
-    display: flex; 
-    align-items: center; 
-    gap: 8px; 
+.jump-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .jump-input-field {
@@ -716,10 +730,10 @@
     backdrop-filter: blur(5px);
 }
 
-.jump-input-field:focus { 
-    outline: none; 
-    border-color: #FDC2CC; 
-    box-shadow: 0 0 0 2px rgba(253, 194, 204, 0.2); 
+.jump-input-field:focus {
+    outline: none;
+    border-color: #FDC2CC;
+    box-shadow: 0 0 0 2px rgba(253, 194, 204, 0.2);
 }
 
 .jump-btn {
@@ -734,9 +748,9 @@
     transition: all 0.3s ease;
 }
 
-.jump-btn:hover { 
-    transform: translateY(-1px); 
-    box-shadow: 0 2px 8px rgba(253, 194, 204, 0.3); 
+.jump-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(253, 194, 204, 0.3);
 }
 
 /* 模态框样式 - 与index.html保持一致 */
@@ -778,24 +792,24 @@
     flex-shrink: 0;
 }
 
-.modal-header h3 { 
-    margin: 0; 
-    font-size: 18px; 
-    color: white; 
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: white;
 }
-.close { 
-    font-size: 28px; 
-    cursor: pointer; 
-    color: white; 
-    line-height: 1; 
-    opacity: 0.8; 
+.close {
+    font-size: 28px;
+    cursor: pointer;
+    color: white;
+    line-height: 1;
+    opacity: 0.8;
 }
-.close:hover { 
-    color: white; 
-    opacity: 1; 
+.close:hover {
+    color: white;
+    opacity: 1;
 }
-.modal-body { 
-    padding: 20px; 
+.modal-body {
+    padding: 20px;
     max-height: calc(90vh - 80px);
     overflow-y: auto;
     flex: 1;
@@ -809,26 +823,26 @@
     padding-bottom: 15px;
     border-bottom: 1px solid #eee;
 }
-.modal-date { 
-    color: #6c757d; 
-    font-size: 14px; 
+.modal-date {
+    color: #6c757d;
+    font-size: 14px;
 }
-.modal-tags { 
-    display: flex; 
-    flex-wrap: wrap; 
-    gap: 5px; 
+.modal-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
 }
-.modal-tags .tag { 
-    background: #f0f2ff; 
-    color: #667eea; 
-    padding: 4px 10px; 
-    border-radius: 20px; 
-    font-size: 12px; 
+.modal-tags .tag {
+    background: #f0f2ff;
+    color: #667eea;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
 }
-.modal-content-text { 
-    margin-bottom: 20px; 
-    line-height: 1.6; 
-    white-space: pre-line; 
+.modal-content-text {
+    margin-bottom: 20px;
+    line-height: 1.6;
+    white-space: pre-line;
 }
 .image-grid {
     display: grid;
@@ -837,24 +851,24 @@
     max-width: 80%;
     margin-top: 15px;
 }
-.image-grid > div { 
-    aspect-ratio: 1; 
-    overflow: hidden; 
-    border-radius: 8px; 
-    cursor: pointer; 
-    transition: transform 0.2s ease, box-shadow 0.2s ease; 
+.image-grid > div {
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.image-grid img { 
-    width: 193px; 
-    height: 193px; 
-    object-fit: cover; 
-    border-radius: 8px; 
-    cursor: pointer; 
-    transition: transform 0.2s ease, box-shadow 0.2s ease; 
+.image-grid img {
+    width: 193px;
+    height: 193px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.image-grid img:hover, .image-grid > div:hover { 
-    transform: scale(1.05); 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+.image-grid img:hover, .image-grid > div:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 .image-preview-modal {
     display: none;
@@ -864,169 +878,169 @@
     width: 100%; height: 100%;
     background-color: rgba(0,0,0,0.95);
 }
-.image-preview-content { 
-    position: relative; 
-    width: 100%; 
-    height: 100%; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
+.image-preview-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.image-preview-close { 
-    position: absolute; 
-    top: 20px; 
-    right: 35px; 
-    color: white; 
-    font-size: 40px; 
-    font-weight: bold; 
-    cursor: pointer; 
-    z-index: 2001; 
+.image-preview-close {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: white;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 2001;
 }
-.image-preview-close:hover { 
-    opacity: 0.7; 
+.image-preview-close:hover {
+    opacity: 0.7;
 }
-#previewImage { 
-    max-width: 90%; 
-    max-height: 90%; 
-    object-fit: contain; 
+#previewImage {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
 }
 .image-nav button {
-    position: absolute; 
-    top: 50%; 
+    position: absolute;
+    top: 50%;
     transform: translateY(-50%);
-    background: rgba(255,255,255,0.8); 
-    border: none; 
+    background: rgba(255,255,255,0.8);
+    border: none;
     font-size: 24px;
-    padding: 15px 20px; 
-    cursor: pointer; 
-    border-radius: 50%; 
+    padding: 15px 20px;
+    cursor: pointer;
+    border-radius: 50%;
     transition: background 0.2s ease;
 }
-.image-nav button:hover { 
-    background: rgba(255,255,255,1); 
+.image-nav button:hover {
+    background: rgba(255,255,255,1);
 }
-#prevBtn { 
-    left: 20px; 
+#prevBtn {
+    left: 20px;
 }
-#nextBtn { 
-    right: 20px; 
+#nextBtn {
+    right: 20px;
 }
 .image-counter {
-    position: absolute; 
-    bottom: 20px; 
-    left: 50%; 
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
     transform: translateX(-50%);
-    color: white; 
-    background: rgba(0,0,0,0.7); 
-    padding: 10px 20px; 
-    border-radius: 20px; 
+    color: white;
+    background: rgba(0,0,0,0.7);
+    padding: 10px 20px;
+    border-radius: 20px;
     font-size: 14px;
 }
-.delete-modal { 
-    max-width: 450px; 
+.delete-modal {
+    max-width: 450px;
 }
-.delete-header { 
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
-    border-radius: 12px 12px 0 0; 
+.delete-header {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border-radius: 12px 12px 0 0;
 }
-.delete-header h3 { 
-    color: white; 
+.delete-header h3 {
+    color: white;
 }
-.delete-actions { 
-    display: flex; 
-    gap: 15px; 
-    justify-content: center; 
-    margin-top: 20px; 
+.delete-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
 }
 .confirm-delete-btn {
-    background: #dc3545; 
+    background: #dc3545;
     color: white;
-    border: none; 
-    padding: 10px 20px; 
-    border-radius: 6px; 
-    cursor: pointer; 
-    font-weight: 500; 
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
     transition: background 0.3s ease;
 }
 .confirm-delete-btn:hover {
     background: #c82333;
 }
-.cancel-btn { 
-    background: #6c757d; 
-    color: white; 
-    border: none; 
-    padding: 10px 20px; 
-    border-radius: 6px; 
-    cursor: pointer; 
-    font-weight: 500; 
+.cancel-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
     transition: background 0.3s ease;
 }
-.cancel-btn:hover { 
-    background: #5a6268; 
+.cancel-btn:hover {
+    background: #5a6268;
 }
 
 /* 评论相关样式 - 完全照搬index.html */
-.modal-comment-section { 
-    margin-top: 20px; 
-    padding-top: 15px; 
-    border-top: 1px solid #eee; 
+.modal-comment-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
 }
 .modal-comment-btn {
     background: linear-gradient(135deg, #FDC2CC 0%, #FFF1F3 100%);
-    color: #333; 
-    border: none; 
-    padding: 10px 20px; 
-    border-radius: 25px; 
+    color: #333;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
     font-size: 14px;
-    cursor: pointer; 
-    transition: all 0.3s ease; 
-    margin-bottom: 20px; 
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
     display: inline-block;
-    box-shadow: 0 3px 10px rgba(253,194,204,0.3); 
+    box-shadow: 0 3px 10px rgba(253,194,204,0.3);
     font-weight: 500;
 }
-.modal-comment-btn:hover { 
+.modal-comment-btn:hover {
     background: linear-gradient(135deg, #FDB5C2 0%, #FFE8EB 100%);
-    transform: translateY(-2px); 
-    box-shadow: 0 5px 15px rgba(253,194,204,0.4); 
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(253,194,204,0.4);
 }
-.comments-section { 
-    margin-top: 30px; 
-    padding-top: 20px; 
-    border-top: 1px solid #eee; 
+.comments-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
 }
-.comments-title { 
-    color: #333; 
-    margin-bottom: 20px; 
-    font-size: 16px; 
+.comments-title {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 16px;
 }
-.comments-list { 
-    max-height: 300px; 
-    overflow-y: auto; 
+.comments-list {
+    max-height: 300px;
+    overflow-y: auto;
 }
-.comment-item { 
+.comment-item {
     background: #f8f9fa;
-    padding: 15px; 
-    border-radius: 8px; 
-    margin-bottom: 10px; 
-    border-left: 3px solid #FDC2CC; 
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 3px solid #FDC2CC;
 }
-.comment-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    margin-bottom: 8px; 
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
 }
-.comment-author { 
+.comment-author {
     font-size: 12px !important;
-    font-weight: 600; 
-    color: #FDC2CC; 
-    margin-right: 8px; 
-    opacity: 0.9; 
+    font-weight: 600;
+    color: #FDC2CC;
+    margin-right: 8px;
+    opacity: 0.9;
 }
-.comment-date { 
-    color: #6c757d; 
-    font-size: 12px; 
+.comment-date {
+    color: #6c757d;
+    font-size: 12px;
 }
 .comment-content {
     color: #333;
@@ -1038,9 +1052,9 @@
     max-width: 100%;
     display: inline-block;
 }
-.comment-actions { 
-    display: flex; 
-    gap: 10px; 
+.comment-actions {
+    display: flex;
+    gap: 10px;
 }
 .comment-edit-btn, .comment-delete-btn {
     background: none;
@@ -1052,20 +1066,20 @@
     border-radius: 4px;
     transition: background 0.2s ease;
 }
-.comment-edit-btn:hover { 
-    background: #e8f0fe; 
+.comment-edit-btn:hover {
+    background: #e8f0fe;
 }
-.comment-delete-btn { 
-    color: #dc3545; 
+.comment-delete-btn {
+    color: #dc3545;
 }
-.comment-delete-btn:hover { 
-    background: #ffeaea; 
+.comment-delete-btn:hover {
+    background: #ffeaea;
 }
-.no-comments { 
-    text-align: center; 
-    color: #6c757d; 
-    padding: 20px; 
-    font-style: italic; 
+.no-comments {
+    text-align: center;
+    color: #6c757d;
+    padding: 20px;
+    font-style: italic;
 }
 
 /* 评论用户信息展示 */
@@ -1217,14 +1231,14 @@
 }
 .voice-bubble-duration { font-size: 0.78rem; color: #aaa; white-space: nowrap; flex-shrink: 0; }
 
-.form-group { 
-    margin-bottom: 20px; 
+.form-group {
+    margin-bottom: 20px;
 }
-.form-group label { 
-    display: block; 
-    margin-bottom: 8px; 
-    font-weight: 500; 
-    color: #333; 
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
 }
 .form-group textarea {
     width: 100%;
@@ -1242,10 +1256,10 @@
     border-color: #FDC2CC;
     box-shadow: 0 0 0 2px rgba(253, 194, 204, 0.2);
 }
-.form-actions { 
-    display: flex; 
-    gap: 15px; 
-    justify-content: flex-end; 
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
 }
 .submit-btn {
     background: linear-gradient(135deg, #FDC2CC 0%, #FFF1F3 100%);
@@ -1288,13 +1302,13 @@
     to { transform: translateX(0); opacity: 1; }
 }
 
-@keyframes fadeIn { 
-    from { opacity: 0; } 
-    to { opacity: 1; } 
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
-@keyframes slideIn { 
-    from { transform: translateY(-50px); opacity: 0; } 
-    to { transform: translateY(0); opacity: 1; } 
+@keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 /* 移动端响应式 */
@@ -1353,21 +1367,21 @@
         min-width: 60px;
     }
 
-    .modal-content { 
-        width: 95%; 
-        margin: 10px auto; 
-        max-height: 90vh; 
+    .modal-content {
+        width: 95%;
+        margin: 10px auto;
+        max-height: 90vh;
     }
-    
-    .image-grid { 
-        grid-template-columns: repeat(3, 1fr); 
-        max-width: 100%; 
-        gap: 6px; 
+
+    .image-grid {
+        grid-template-columns: repeat(3, 1fr);
+        max-width: 100%;
+        gap: 6px;
     }
-    .image-grid img { 
-        width: 100%; 
-        height: auto; 
-        aspect-ratio: 1; 
+    .image-grid img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
     }
 
     .pagination-wrapper { margin: 20px 0; }
@@ -1388,7 +1402,7 @@
     .jump-input-field { width: 50px; font-size: 12px; }
 
     .message-toast { right: 10px; left: 10px; min-width: auto; }
-    
+
     .comment-content { max-width: 60ch; }
     .comment-btn, .edit-btn, .delete-btn { width: auto; min-width: 60px; margin-bottom: 5px; }
 }
@@ -1417,6 +1431,57 @@
 @supports not (backdrop-filter: blur(10px)) {
     .profile-card, .post-card { background: rgba(255, 255, 255, 0.4); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
     .profile-card::before, .post-card::before { display: none; }
+}
+
+/* ── 好友操作按钮 ── */
+.profile-friend-action {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.friend-btn {
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.friend-btn--add {
+    background: linear-gradient(135deg, #ff9eb5, #ffb6c1);
+    color: white;
+    box-shadow: 0 3px 12px rgba(255, 158, 181, 0.45);
+}
+.friend-btn--add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 16px rgba(255, 158, 181, 0.6);
+}
+.friend-btn--done {
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.25);
+    cursor: default;
+}
+.friend-btn--pending {
+    background: rgba(255,200,100,0.2);
+    color: rgba(255,220,150,0.9);
+    border: 1px solid rgba(255,200,100,0.3);
+    cursor: default;
+}
+.friend-btn--chat {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+.friend-btn--chat:hover {
+    background: rgba(255,255,255,0.25);
+    transform: translateY(-2px);
 }
 </style>
 
@@ -1493,12 +1558,12 @@
                     } else {
                         avatarHtml = `<div class="comment-avatar" style="margin-right: 8px;"><span class="comment-avatar-text" style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #FDC2CC, #FFF1F3); border-radius: 50%; color: white; font-weight: bold;">${authorName[0]}</span></div>`;
                     }
-                    
+
                     // 管理员图标
-                    const adminIconHtml = data.is_admin 
+                    const adminIconHtml = data.is_admin
                         ? `<img src="/static/img/dav.png" alt="大V" style="height: 1.2em; width: auto; vertical-align: middle; margin-left: 4px; display: inline-block;" onerror="this.style.display='none'">`
                         : '';
-                    
+
                     // 更新authorInfo内容
                     authorInfoElement.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
@@ -1532,7 +1597,7 @@
    function openPostModal(postId, title, content, imagePaths, tags, date, author, authorId, thumbPaths) {
         document.getElementById('modalTitle').textContent = title;
         document.getElementById('modalContent').textContent = content;
-        document.getElementById('modalDate').innerHTML = 
+        document.getElementById('modalDate').innerHTML =
             '<img src="/static/img/calendar.png" alt="日历" style="width: 1.2em; height: 1.2em; vertical-align: middle;" onerror="this.style.display=\'none\'"> ' + date;
 
         // 显示作者信息
@@ -1619,7 +1684,7 @@
             const postData = JSON.parse(element.dataset.post);
             if (!postData || !postData.id) throw new Error('文章数据无效');
             currentPostId = parseInt(postData.id);
-            
+
             // 处理图片数据 - 确保是数组
             let imagesArray = [];
             if (postData.images) {
@@ -1634,10 +1699,10 @@
                     }
                 }
             }
-            
+
             // 生成缩略图路径列表
             const thumbPaths = imagesArray.map(imgPath => getThumbPath(imgPath));
-            
+
             openPostModal(
                 postData.id,
                 postData.title,
@@ -1655,9 +1720,9 @@
             alert('无法打开文章详情，请刷新页面重试');
         }
     }
-    function closePostModal() { 
-        document.getElementById('postModal').style.display = 'none'; 
-        document.body.style.overflow = 'auto'; 
+    function closePostModal() {
+        document.getElementById('postModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
     }
 
     function openImagePreview(index) {
@@ -1671,8 +1736,8 @@
     }
 
 
-    function closeImagePreview() { 
-        document.getElementById('imagePreview').style.display = 'none'; 
+    function closeImagePreview() {
+        document.getElementById('imagePreview').style.display = 'none';
     }
 
     function prevImage() {
@@ -1695,59 +1760,59 @@
         }
     }
 
-    function updateNavButtons() { 
-        document.getElementById('prevBtn').style.opacity = currentImageIndex === 0 ? '0.3' : '1'; 
-        document.getElementById('nextBtn').style.opacity = currentImageIndex === currentImages.length - 1 ? '0.3' : '1'; 
+    function updateNavButtons() {
+        document.getElementById('prevBtn').style.opacity = currentImageIndex === 0 ? '0.3' : '1';
+        document.getElementById('nextBtn').style.opacity = currentImageIndex === currentImages.length - 1 ? '0.3' : '1';
     }
 
-    function editPost(postId) { 
-        window.location.href = `/edit_post/${postId}`; 
+    function editPost(postId) {
+        window.location.href = `/edit_post/${postId}`;
     }
 
     function deletePost(postId, postTitle) {
         currentDeletePostId = postId;
         document.getElementById('deleteMessage').textContent = `确定要删除《${postTitle}》吗？此操作无法撤销。`;
-        document.getElementById('deleteModal').style.display = 'block'; 
+        document.getElementById('deleteModal').style.display = 'block';
         document.body.style.overflow = 'hidden';
         document.getElementById('confirmDeleteBtn').onclick = function() {
             fetch(`/delete_post/${postId}`, { method: 'POST' })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success) { 
-                        closeDeleteModal(); 
-                        location.reload(); 
-                    } else { 
-                        showMessage(data.message || '删除失败', 'error'); 
+                    if (data.success) {
+                        closeDeleteModal();
+                        location.reload();
+                    } else {
+                        showMessage(data.message || '删除失败', 'error');
                     }
                 })
                 .catch(() => showMessage('删除失败，请重试', 'error'));
         };
     }
 
-    function closeDeleteModal() { 
-        document.getElementById('deleteModal').style.display = 'none'; 
-        document.body.style.overflow = 'auto'; 
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
     }
 
     function openCommentModal(postId, postTitle, commentId = null, content = '') {
         if (!postId || isNaN(postId)) return;
-        currentPostId = parseInt(postId); 
+        currentPostId = parseInt(postId);
         currentCommentId = commentId;
         document.getElementById('commentPostId').value = currentPostId;
         document.getElementById('commentId').value = commentId || '';
         document.getElementById('commentContent').value = content;
         const title = commentId ? '编辑评论' : `为《${postTitle}》添加评论`;
         document.getElementById('commentModalTitle').textContent = title;
-        document.getElementById('commentModal').style.display = 'block'; 
+        document.getElementById('commentModal').style.display = 'block';
         document.body.style.overflow = 'hidden';
     }
 
     function closeCommentModal() {
         resetVoiceState();
-        document.getElementById('commentModal').style.display = 'none'; 
-        document.body.style.overflow = 'auto'; 
-        currentCommentId = null; 
-        document.getElementById('commentForm').reset(); 
+        document.getElementById('commentModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        currentCommentId = null;
+        document.getElementById('commentForm').reset();
     }
 
     function loadComments(postId) {
@@ -1784,7 +1849,7 @@
                     if (comment.can_edit) {
                         // 判断是否为语音评论
                         const isVoiceComment = comment.voice_path ? true : false;
-                        
+
                         if (isVoiceComment) {
                             // 语音评论只显示删除按钮
                             actionsHtml = `
@@ -1828,25 +1893,25 @@
             });
     }
 
-    function editComment(commentId, content) { 
-        if (!currentPostId) return; 
-        openCommentModal(currentPostId, '', commentId, content); 
+    function editComment(commentId, content) {
+        if (!currentPostId) return;
+        openCommentModal(currentPostId, '', commentId, content);
     }
 
     function deleteComment(commentId) {
         if (!currentPostId) return;
         if (confirm('确定要删除这条评论吗？')) {
-            fetch(`/delete_comment/${commentId}`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' } 
+            fetch(`/delete_comment/${commentId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
             })
             .then(res => res.json())
             .then(data => {
-                if (data.success) { 
-                    loadComments(currentPostId); 
-                    showMessage('评论删除成功！', 'success'); 
-                } else { 
-                    showMessage('删除失败: ' + data.message, 'error'); 
+                if (data.success) {
+                    loadComments(currentPostId);
+                    showMessage('评论删除成功！', 'success');
+                } else {
+                    showMessage('删除失败: ' + data.message, 'error');
                 }
             })
             .catch(() => showMessage('删除失败，请重试', 'error'));
@@ -1857,9 +1922,9 @@
         e.preventDefault();
         const formData = new FormData(this);
         const postId = parseInt(formData.get('post_id'));
-        if (!postId || isNaN(postId)) { 
-            showMessage('文章信息错误', 'error'); 
-            return; 
+        if (!postId || isNaN(postId)) {
+            showMessage('文章信息错误', 'error');
+            return;
         }
 
         const commentId = formData.get('comment_id');
@@ -1878,9 +1943,9 @@
             try {
                 const res = await fetch('/upload_voice', { method: 'POST', body: vForm });
                 const vData = await res.json();
-                if (!vData.success) { 
-                    showMessage('语音上传失败: ' + vData.message, 'error'); 
-                    return; 
+                if (!vData.success) {
+                    showMessage('语音上传失败: ' + vData.message, 'error');
+                    return;
                 }
                 voicePath = vData.voice_path;
                 voiceDuration = vData.duration;
@@ -1890,56 +1955,56 @@
                 return;
             }
         } else {
-            if (!textContent) { 
-                showMessage('评论内容不能为空', 'warning'); 
-                return; 
+            if (!textContent) {
+                showMessage('评论内容不能为空', 'warning');
+                return;
             }
         }
 
         const data = { post_id: postId, content: textContent, voice_path: voicePath, voice_duration: voiceDuration };
 
-        fetch(url, { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify(data) 
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) { 
-                closeCommentModal(); 
-                loadComments(currentPostId); 
-                showMessage(isEdit ? '评论编辑成功！' : '评论添加成功！', 'success'); 
-            } else { 
-                showMessage(data.message || '操作失败', 'error'); 
+            if (data.success) {
+                closeCommentModal();
+                loadComments(currentPostId);
+                showMessage(isEdit ? '评论编辑成功！' : '评论添加成功！', 'success');
+            } else {
+                showMessage(data.message || '操作失败', 'error');
             }
         })
         .catch(() => showMessage('提交失败，请重试', 'error'));
     });
 
-    function showMessage(message, type = 'success') { 
-        const toast = document.getElementById('messageToast'); 
-        document.getElementById('messageText').textContent = message; 
-        toast.className = `message-toast ${type}`; 
-        toast.style.display = 'block'; 
-        setTimeout(() => { 
-            toast.style.display = 'none'; 
-        }, 3000); 
+    function showMessage(message, type = 'success') {
+        const toast = document.getElementById('messageToast');
+        document.getElementById('messageText').textContent = message;
+        toast.className = `message-toast ${type}`;
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
     }
 
     document.addEventListener('keydown', function(e) {
-        if (document.getElementById('imagePreview').style.display === 'block') { 
-            if (e.key === 'ArrowLeft') prevImage(); 
-            else if (e.key === 'ArrowRight') nextImage(); 
-            else if (e.key === 'Escape') closeImagePreview(); 
+        if (document.getElementById('imagePreview').style.display === 'block') {
+            if (e.key === 'ArrowLeft') prevImage();
+            else if (e.key === 'ArrowRight') nextImage();
+            else if (e.key === 'Escape') closeImagePreview();
         }
-        else if (document.getElementById('postModal').style.display === 'block') { 
-            if (e.key === 'Escape') closePostModal(); 
+        else if (document.getElementById('postModal').style.display === 'block') {
+            if (e.key === 'Escape') closePostModal();
         }
-        else if (document.getElementById('deleteModal').style.display === 'block') { 
-            if (e.key === 'Escape') closeDeleteModal(); 
+        else if (document.getElementById('deleteModal').style.display === 'block') {
+            if (e.key === 'Escape') closeDeleteModal();
         }
-        else if (document.getElementById('commentModal').style.display === 'block') { 
-            if (e.key === 'Escape') closeCommentModal(); 
+        else if (document.getElementById('commentModal').style.display === 'block') {
+            if (e.key === 'Escape') closeCommentModal();
         }
     });
 
@@ -1962,7 +2027,7 @@
             startRecording();
         }
     }, { passive: false, capture: true });
-    
+
     document.addEventListener('mouseup', function() { stopRecording(); });
     document.addEventListener('mouseleave', function() { stopRecording(); });
     document.addEventListener('contextmenu', function(e) {
@@ -2036,12 +2101,12 @@
     }
 
     function stopRecording() {
-        if (audioContext === 'pending') { 
-            audioContext = null; 
-            return; 
+        if (audioContext === 'pending') {
+            audioContext = null;
+            return;
         }
         if (!audioContext || !recordingStream) return;
-        
+
         if (recordingStartTime && Date.now() - recordingStartTime < 300) {
             clearRecordingResources();
             return;
@@ -2051,7 +2116,7 @@
         var chunks = pcmChunks;
         var sr = sampleRate;
         var startTime = recordingStartTime;
-        
+
         clearRecordingResources();
 
         recordedDuration = Math.round((Date.now() - startTime) / 1000) || 1;
@@ -2067,32 +2132,32 @@
         for (var i = 0; i < chunks.length; i++) { merged.set(chunks[i], offset); offset += chunks[i].length; }
         recordedBlob = encodeWAV(merged, sr);
         document.getElementById('voiceRecordStatus').textContent = '';
-        
+
         submitVoiceComment();
     }
 
     function clearRecordingResources() {
         if (audioContext) {
-            try { 
+            try {
                 if (audioContext._processor) audioContext._processor.onaudioprocess = null;
                 if (audioContext._source) audioContext._source.disconnect();
                 if (audioContext._processor) audioContext._processor.disconnect();
-                audioContext.close().catch(function(){}); 
+                audioContext.close().catch(function(){});
             } catch(e2) {}
             audioContext = null;
         }
-        
+
         if (recordingStream) {
             recordingStream.getTracks().forEach(track => track.stop());
             recordingStream = null;
         }
-        
+
         pcmChunks = [];
         clearInterval(recordingTimer);
-        
+
         var btn = document.getElementById('voiceRecordBtn');
         if (btn) btn.classList.remove('recording');
-        
+
         recordingStartTime = null;
     }
 
@@ -2123,15 +2188,15 @@
 
     function submitVoiceComment() {
         var postId = parseInt(document.getElementById('commentPostId').value);
-        if (!postId || isNaN(postId)) { 
-            showMessage('请先打开评论框', 'error'); 
+        if (!postId || isNaN(postId)) {
+            showMessage('请先打开评论框', 'error');
             clearRecordingResources();
-            return; 
+            return;
         }
-        if (!recordedBlob) { 
-            showMessage('没有录音内容', 'error'); 
+        if (!recordedBlob) {
+            showMessage('没有录音内容', 'error');
             clearRecordingResources();
-            return; 
+            return;
         }
 
         document.getElementById('voiceRecordStatus').textContent = '上传中...';
@@ -2143,10 +2208,10 @@
         fetch('/upload_voice', { method: 'POST', body: vForm })
         .then(function(res) { return res.json(); })
         .then(function(vData) {
-            if (!vData.success) { 
-                showMessage('语音上传失败: ' + vData.message, 'error'); 
+            if (!vData.success) {
+                showMessage('语音上传失败: ' + vData.message, 'error');
                 clearRecordingResources();
-                return; 
+                return;
             }
             var data = {
                 post_id: postId,
@@ -2229,5 +2294,32 @@
         document.addEventListener('DOMContentLoaded', () => { document.body.classList.add('loaded'); });
         window.addEventListener('load', () => { setTimeout(() => { document.body.classList.add('fully-loaded'); }, 100); });
     })();
+
+    // 从主页添加好友
+    function addFriendFromProfile(userId) {
+        const btn = document.getElementById('addFriendBtn');
+        if (!btn) return;
+        btn.disabled = true;
+        btn.textContent = '发送中...';
+        fetch('/add_friend/' + userId, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    btn.textContent = '⏳ 请求已发送';
+                    btn.className = 'friend-btn friend-btn--pending';
+                    showMessage && showMessage('好友请求已发送！', 'success');
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = '➕ 添加好友';
+                    showMessage && showMessage(data.error || '操作失败', 'error');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.textContent = '➕ 添加好友';
+                showMessage && showMessage('网络错误，请重试', 'error');
+            });
+    }
+
 </script>
 {% endblock %}

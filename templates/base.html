@@ -126,6 +126,20 @@
     </div>
 
     <style>
+        body {
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+        }
+        main, .main-content, .container /* 用你实际的类名 */ {
+          flex: 1;
+        }
+        .footer {
+          margin-bottom: 64px; /* 与 bottom-nav 的高度一致 */
+          /* 如果设备有底部安全区域（iPhone 刘海屏）则再加上 */
+          margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+        }
+
         /* 移动端样式 */
         @media (max-width: 768px) {
             .nav-content {
@@ -789,6 +803,7 @@
         }
     });
 </script>
-{% include 'chat_widget.html' %}
+    {% include 'bottom_nav.html' %}
+    {% include 'chat_widget.html' %}
 </body>
 </html>

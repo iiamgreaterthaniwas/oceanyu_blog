@@ -13,89 +13,6 @@
             <div class="container">
                 <div class="nav-content">
                     <a href="{{ url_for('index') }}" class="logo">CRAZYBLOG</a>
-
-                    <!-- 搜索功能 -->
-                    <div class="nav-search">
-                        <form method="GET" action="{{ url_for('index') }}" class="nav-search-form">
-                            <div class="nav-search-group">
-                                <!-- 第一行：搜索输入框和搜索按钮 -->
-                                <div class="search-row-1">
-                                    <input type="text" name="search_title"
-                                           value="{{ search_title or '' }}"
-                                           placeholder="搜索标题..."
-                                           class="nav-search-input">
-                                    <!-- PC端：日期选择框紧跟搜索框 -->
-                                    <input type="date" name="search_date"
-                                           value="{{ search_date or '' }}"
-                                           class="nav-search-date">
-                                    <button type="submit" class="nav-search-btn">
-                                        <img src="/static/img/search.png" alt="搜索" style="width: 1em; height: 1em; vertical-align: middle;" onerror="this.outerHTML='🔍'">
-                                    </button>
-                                    {% if search_title or search_date %}
-                                    <a href="{{ url_for('index') }}" class="nav-clear-btn" title="清除搜索">
-                                        <img src="/static/img/clear.png" alt="清空" style="width: 1em; height: 1em; vertical-align: middle;" onerror="this.outerHTML='✕'">
-                                    </a>
-                                    {% endif %}
-                                </div>
-
-                                <!-- 第二行：日期选择和添加按钮（移动端） -->
-                                <div class="search-row-2">
-                                    <input type="date" name="search_date"
-                                        value="{{ search_date or '' }}"
-                                        class="nav-search-date">
-                                    
-                                    <!-- 移动端操作按钮区域 -->
-                                    {% if current_user %}
-                                    <!-- 已登录状态：显示添加文章、用户信息和退出按钮 -->
-                                    <div class="mobile-actions">
-                                        <a href="{{ url_for('add_post') }}" class="mobile-action-btn">添加文章</a>
-                                        <div class="mobile-user-compact">
-                                            <a href="{{ url_for('user_profile', user_id=current_user.id) }}" class="mobile-user-link" title="{{ current_user.username }}">
-                                                <div class="mobile-avatar">
-                                                    {% if current_user.avatar_path %}
-                                                    <img src="/{{ current_user.avatar_path }}" alt="头像">
-                                                    {% else %}
-                                                    <span class="mobile-avatar-text">{{ current_user.username[0] }}</span>
-                                                    {% endif %}
-                                                </div>
-                                            </a>
-                                            <a href="{{ url_for('logout') }}" class="mobile-logout-circle" title="退出登录">退出</a>
-                                        </div>
-                                    </div>
-                                    {% else %}
-                                    <!-- 未登录状态：显示登录和注册按钮 -->
-                                    <div class="mobile-actions">
-                                        <a href="{{ url_for('login') }}" class="mobile-action-btn">登录</a>
-                                        <a href="{{ url_for('register') }}" class="mobile-action-btn">注册</a>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- 右侧导航（PC端） -->
-                    <ul class="nav-links">
-                        {% if current_user %}
-                        <li><a href="{{ url_for('add_post') }}" class="add-post-btn">添加文章</a></li>
-                        <li class="nav-user-item">
-                            <a href="{{ url_for('user_profile', user_id=current_user.id) }}" class="nav-user-link" title="{{ current_user.username }}">
-                                <div class="nav-avatar">
-                                    {% if current_user.avatar_path %}
-                                    <img src="/{{ current_user.avatar_path }}" alt="头像">
-                                    {% else %}
-                                    <span class="nav-avatar-text">{{ current_user.username[0] }}</span>
-                                    {% endif %}
-                                </div>
-                                <span class="nav-username">{{ current_user.username }}</span>
-                            </a>
-                            <a href="{{ url_for('logout') }}" class="nav-logout-btn" title="退出登录">退出</a>
-                        </li>
-                        {% else %}
-                        <li><a href="{{ url_for('login') }}" class="add-post-btn">登录</a></li>
-                        <li><a href="{{ url_for('register') }}" class="nav-register-btn">注册</a></li>
-                        {% endif %}
-                    </ul>
                 </div>
             </div>
         </nav>
@@ -116,12 +33,6 @@
     </div>
 </main>
 
-        <footer class="footer">
-            <div class="container">
-                <p>&copy; 2025 OceanYu. 版权所有 | OceanYu的CRAZYBLOG</p>
-                <p><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">冀ICP备2025117480号-1</a></p>
-            </div>
-        </footer>
     </div>
 
     <style>
@@ -134,7 +45,7 @@
             }
 
             .main-content {
-                margin-top: 190px;
+                margin-top: 70px;
                 padding: 20px 0;
             }
 
@@ -626,7 +537,7 @@
             }
 
             .main-content {
-                margin-top: 190px;
+                margin-top: 70px;
                 padding: 20px 0;
             }
 

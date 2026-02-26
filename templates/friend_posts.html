@@ -1,0 +1,846 @@
+{% extends "base_no_search.html" %}
+{% block title %}好友动态 - CRAZYBLOG{% endblock %}
+
+{% block content %}
+<div class="bubbles">
+    <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+    <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+</div>
+
+<div class="friend-posts-page">
+    <!-- 页面标题卡片 -->
+    <div class="friend-header-card profile-card">
+        <h2 class="profile-name">好友动态</h2>
+        <p class="profile-bio">看看你的好友们最近在写什么~</p>
+        <div class="user-stats" style="margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.3);">
+            <div class="stat-item">
+                <span class="stat-num">{{ pagination.total if pagination else 0 }}</span>
+                <span class="stat-label">篇文章</span>
+            </div>
+            <div class="stat-item">
+            </div>
+        </div>
+    </div>
+
+    <!-- 文章列表 -->
+    <div class="user-posts-section">
+        <h3 class="section-title">📝 好友的文章</h3>
+        {% if posts %}
+        <div class="blog-posts">
+            {% for post in posts %}
+            {% set can_edit = current_user and (current_user.is_admin or current_user.id == post.user_id) %}
+            <div class="post-card"
+                 onclick="openPostModalSafe(this)"
+                 data-post='{{ {"id": post.id, "title": post.title, "content": post.content, "images": post.image_paths, "tags": post.tags, "date": post.date.strftime("%Y-%m-%d"), "author": post.author_user.username if post.author_user else "匿名", "author_id": post.user_id}|tojson }}'>
+                <div class="post-content-wrapper">
+                    <h3 class="post-title">{{ post.title }}</h3>
+                    <div class="post-date">
+                        <img src="/static/img/calendar.png" alt="日历" style="width:1.2em;height:1.2em;vertical-align:middle;transform:translateY(-0.1em);" onerror="this.style.display='none'">
+                        {{ post.date.strftime('%Y-%m-%d') }}
+                        {% if post.author_user %}
+                        · <a href="{{ url_for('user_profile', user_id=post.user_id) }}"
+                             onclick="event.stopPropagation()"
+                             style="color:#FDC2CC; text-decoration:none;">{{ post.author_user.username }}</a>
+                        {% endif %}
+                    </div>
+                    <p class="post-content">{{ post.content }}</p>
+                    <div class="post-tags">
+                        {% if post.tags %}
+                        {% for tag in post.tags.split(',') %}
+                        <span class="tag">{{ tag.strip() }}</span>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% if post.image_path %}
+                    <div class="post-image-count">📷 {{ post.image_count }}张图片</div>
+                    {% endif %}
+                </div>
+                {% if can_edit %}
+                <div class="post-actions">
+                    <button type="button" class="edit-btn"
+                            onclick="event.stopPropagation(); editPost({{ post.id }})">
+                        <img src="/static/img/edit.png" alt="编辑" style="width:1.4em;height:1.4em;vertical-align:middle;" onerror="this.style.display='none'"> 编辑
+                    </button>
+                    <button type="button" class="delete-btn"
+                            onclick="event.stopPropagation(); deletePost({{ post.id }}, '{{ post.title }}')">
+                        🗑️ 删除
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 分页 -->
+        {% if pagination and pagination.pages > 1 %}
+        <div class="pagination-wrapper">
+            <div class="pagination">
+                {% if pagination.has_prev %}
+                <a href="{{ url_for('friend_posts', page=pagination.prev_num) }}" class="pagination-btn prev-btn">
+                    <span>← 上一页</span>
+                </a>
+                {% else %}
+                <span class="pagination-btn prev-btn disabled"><span>← 上一页</span></span>
+                {% endif %}
+
+                <div class="pagination-pages">
+                    {% set start_page = [pagination.page - 2, 1]|max %}
+                    {% set end_page = [pagination.page + 2, pagination.pages]|min %}
+                    {% if start_page > 1 %}
+                    <a href="{{ url_for('friend_posts', page=1) }}" class="pagination-num">1</a>
+                    {% if start_page > 2 %}<span class="pagination-ellipsis">...</span>{% endif %}
+                    {% endif %}
+                    {% for page_num in range(start_page, end_page + 1) %}
+                        {% if page_num == pagination.page %}
+                        <span class="pagination-num active">{{ page_num }}</span>
+                        {% else %}
+                        <a href="{{ url_for('friend_posts', page=page_num) }}" class="pagination-num">{{ page_num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if end_page < pagination.pages %}
+                    {% if end_page < pagination.pages - 1 %}<span class="pagination-ellipsis">...</span>{% endif %}
+                    <a href="{{ url_for('friend_posts', page=pagination.pages) }}" class="pagination-num">{{ pagination.pages }}</a>
+                    {% endif %}
+                </div>
+
+                {% if pagination.has_next %}
+                <a href="{{ url_for('friend_posts', page=pagination.next_num) }}" class="pagination-btn next-btn">
+                    <span>下一页 →</span>
+                </a>
+                {% else %}
+                <span class="pagination-btn next-btn disabled"><span>下一页 →</span></span>
+                {% endif %}
+            </div>
+            <div class="page-jump">
+                <span>第 {{ pagination.page }} 页 / 共 {{ pagination.pages }} 页</span>
+                <div class="jump-input">
+                    <input type="number" id="jumpPageInput" min="1" max="{{ pagination.pages }}" placeholder="" class="jump-input-field">
+                    <button onclick="jumpToPage()" class="jump-btn">跳转</button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="no-posts">
+            <p>暂时没有好友动态~</p>
+            <a href="{{ url_for('contacts') }}" class="view-all-btn">去添加好友</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 文章详情弹窗 -->
+<div id="postModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle"></h3>
+            <span class="close" onclick="closePostModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="modal-post-meta">
+                <span id="modalDate" class="modal-date"></span>
+                <div id="modalTags" class="modal-tags"></div>
+            </div>
+            <div id="modalAuthorInfo" class="modal-author-info" style="margin-bottom:12px; display:none;"></div>
+            <p id="modalContent" class="modal-content-text"></p>
+            <div id="imageGrid" class="image-grid"></div>
+            <div class="modal-comment-section">
+                {% if current_user %}
+                <button type="button" class="modal-comment-btn" onclick="openCommentModal(currentPostId, document.getElementById('modalTitle').textContent)">💬</button>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="modal-comment-btn" style="text-decoration:none; display:inline-block;">💬 登录后评论</a>
+                {% endif %}
+                <div id="commentsSection" class="comments-section">
+                    <h4 class="comments-title">评论 (<span id="commentCount">0</span>)</h4>
+                    <div id="commentsList" class="comments-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 评论弹窗 -->
+<div id="commentModal" class="modal">
+    <div class="modal-content comment-modal">
+        <div class="modal-header">
+            <h3 id="commentModalTitle">添加评论</h3>
+            <span class="close" onclick="closeCommentModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="commentForm">
+                <input type="hidden" id="commentPostId" name="post_id">
+                <input type="hidden" id="commentId" name="comment_id">
+                {% if current_user %}
+                <div class="comment-user-info">
+                    <div class="comment-user-avatar">
+                        {% if current_user.avatar_path %}<img src="/{{ current_user.avatar_path }}" alt="头像">
+                        {% else %}<span>{{ current_user.username[0] }}</span>{% endif %}
+                    </div>
+                    <span class="comment-username">以 <strong>{{ current_user.username }}</strong> 的身份发表评论</span>
+                </div>
+                {% endif %}
+                <div class="form-group" style="margin-top:1rem;">
+                    <label for="commentContent">评论内容:</label>
+                    <textarea id="commentContent" name="content" rows="4" placeholder="写下您的评论..."></textarea>
+                </div>
+                <div id="voiceRecordStatus" class="voice-record-status"></div>
+                <div id="voicePreview" class="voice-preview" style="display:none;"></div>
+                <div class="form-actions">
+                    <button type="submit" class="submit-btn">🚀 提交评论</button>
+                    <button type="button" id="voiceRecordBtn" class="mic-emoji-btn"
+                        oncontextmenu="return false;"
+                        onmousedown="startRecording()" onmouseup="stopRecording()" onmouseleave="stopRecording()"
+                        ontouchstart="startRecording()" ontouchend="stopRecording()" ontouchcancel="stopRecording()">🎙️ 长按录音</button>
+                    <button type="button" onclick="closeCommentModal()" class="cancel-btn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 大图预览 -->
+<div id="imagePreview" class="image-preview-modal">
+    <div class="image-preview-content">
+        <span class="image-preview-close" onclick="closeImagePreview()">&times;</span>
+        <img id="previewImage" src="" alt="预览图片">
+        <div class="image-nav">
+            <button id="prevBtn" onclick="prevImage()">&lt;</button>
+            <button id="nextBtn" onclick="nextImage()">&gt;</button>
+        </div>
+        <div id="imageCounter" class="image-counter"></div>
+    </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content delete-modal">
+        <div class="modal-header delete-header">
+            <h3>⚠️ 确认删除</h3>
+            <span class="close" onclick="closeDeleteModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="deleteMessage">确定要删除这篇文章吗？此操作无法撤销。</p>
+            <div class="delete-actions">
+                <button id="confirmDeleteBtn" class="confirm-delete-btn">确认删除</button>
+                <button onclick="closeDeleteModal()" class="cancel-btn">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="messageToast" class="message-toast"><span id="messageText"></span></div>
+
+<style>
+.friend-posts-page { max-width: 960px; margin: 0 auto; padding: 1rem 0; }
+
+.friend-header-card {
+    position: relative; background: transparent; border-radius: 20px;
+    padding: 2rem; margin-bottom: 2rem; text-align: center;
+    opacity: 0; animation: cardFadeIn 0.8s ease forwards;
+    transform: translate3d(0,0,0); will-change: transform, backdrop-filter;
+}
+.friend-header-card::before {
+    content: ''; position: absolute; inset: 0; z-index: 0;
+    backdrop-filter: blur(12px) saturate(180%); -webkit-backdrop-filter: blur(12px) saturate(180%);
+    background: rgba(255,255,255,0.2); border-radius: inherit;
+}
+.friend-header-card::after {
+    content: ''; position: absolute; inset: 0; z-index: 1;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.85), inset 0 0 4px rgba(255,255,255,0.85);
+    border-radius: inherit; pointer-events: none;
+}
+.friend-header-card > * { position: relative; z-index: 2; }
+.friend-header-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+.friend-header-card .profile-name { font-size: 2rem; margin-bottom: 0.5rem; color: #333; }
+.friend-header-card .profile-bio { color: #666; font-size: 1.1rem; }
+.user-stats { display: flex; justify-content: center; gap: 2rem; }
+.stat-item { text-align: center; }
+.stat-num { display: block; font-size: 1.6rem; font-weight: 700; color: #FDC2CC; }
+.stat-label { font-size: 0.8rem; color: #999; }
+
+.blog-posts { display: flex; flex-direction: column; gap: 20px; }
+.post-card {
+    cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative; display: flex; justify-content: space-between; align-items: stretch;
+    background: rgba(255,255,255,0.2); border-radius: 16px; padding: 20px; margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    opacity: 0; animation: cardFadeIn 0.8s ease forwards;
+    transform: translate3d(0,0,0); will-change: transform, backdrop-filter;
+}
+@media (max-width: 768px) {
+    .main-content {
+        margin-top: 70px !important;
+    }
+    
+    .friend-posts-page {
+        padding-top: 0;
+    }
+}
+.post-card::before, .post-card::after { content: none !important; }
+.post-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+.post-content-wrapper { flex: 1; padding-right: 15px; }
+.post-title { margin: 0 0 10px 0; color: #333; font-size: 1.4rem; }
+.post-date { color: #666; font-size: 0.9rem; margin-bottom: 12px; }
+.post-content { color: #444; line-height: 1.6; margin-bottom: 15px; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; max-height: 4.8em; }
+.post-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.tag { background: linear-gradient(135deg,#FDC2CC 0%,#FFF1F3 100%); color: white; padding: 0.3rem 0.8rem; border-radius: 15px; font-size: 0.8rem; }
+.modal-tags .tag { background: #f0f2ff; color: #667eea; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+.post-image-count { margin-top: 10px; color: #667eea; font-size: 14px; }
+.post-actions { display: flex; flex-direction: column; align-items: flex-start; padding-top: 10px; gap: 8px; }
+.edit-btn { background: #87CEEB; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; opacity: 0.8; width: 100%; min-width: 70px; transition: all 0.3s ease; }
+.post-card:hover .edit-btn { opacity: 1; }
+.edit-btn:hover { background: #5F9ED1; transform: scale(1.05); }
+.delete-btn { background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; opacity: 0.8; width: 100%; min-width: 70px; transition: all 0.3s ease; }
+.post-card:hover .delete-btn { opacity: 1; }
+.delete-btn:hover { background: #c82333; transform: scale(1.05); }
+
+.section-title { font-size: 1.3rem; color: #555; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid rgba(253,194,204,0.3); }
+.no-posts { text-align: center; padding: 60px 20px; background: white; border-radius: 12px; margin: 20px 0; color: #6c757d; }
+.no-posts p { font-size: 18px; margin-bottom: 20px; }
+.view-all-btn { background: linear-gradient(135deg,#FDC2CC 0%,#FFF1F3 100%); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; }
+
+.pagination-wrapper { display: flex; flex-direction: column; align-items: center; margin: 30px 0; gap: 15px; }
+.pagination { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 600px; background: rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 50px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); box-sizing: border-box; }
+.pagination-btn { display: flex; align-items: center; padding: 8px 16px; border-radius: 25px; background: linear-gradient(135deg,#FDC2CC 0%,#FFF1F3 100%); color: #333; text-decoration: none; font-weight: 500; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.5); flex-shrink: 0; }
+.pagination-btn:hover:not(.disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(253,194,204,0.4); }
+.pagination-btn.disabled { opacity: 0.5; cursor: not-allowed; background: rgba(255,255,255,0.3); }
+.pagination-pages { display: flex; align-items: center; gap: 5px; flex: 1; justify-content: center; overflow-x: auto; scrollbar-width: none; }
+.pagination-pages::-webkit-scrollbar { display: none; }
+.pagination-num { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.3); color: #333; text-decoration: none; font-weight: 500; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.4); flex-shrink: 0; }
+.pagination-num:hover { background: rgba(253,194,204,0.6); transform: scale(1.1); }
+.pagination-num.active { background: linear-gradient(135deg,#FDC2CC 0%,#FFF1F3 100%); font-weight: 600; transform: scale(1.15); box-shadow: 0 2px 8px rgba(253,194,204,0.4); }
+.pagination-ellipsis { color: #666; font-weight: 500; padding: 0 4px; flex-shrink: 0; }
+.page-jump { display: flex; align-items: center; gap: 15px; font-size: 14px; color: #666; }
+.jump-input { display: flex; align-items: center; gap: 8px; }
+.jump-input-field { width: 60px; padding: 6px 10px; border: 1px solid rgba(255,255,255,0.4); border-radius: 20px; background: rgba(255,255,255,0.3); color: #333; text-align: center; font-size: 14px; backdrop-filter: blur(5px); }
+.jump-input-field:focus { outline: none; border-color: #FDC2CC; box-shadow: 0 0 0 2px rgba(253,194,204,0.2); }
+.jump-btn { padding: 6px 12px; border: none; border-radius: 15px; background: linear-gradient(135deg,#FDC2CC 0%,#FFF1F3 100%); color: #333; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
+.jump-btn:hover { transform: translateY(-1px); }
+
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); animation: fadeIn 0.3s ease; }
+.modal-content { background: white; margin: 2% auto; padding: 0; border-radius: 12px; width: 90%; max-width: 800px; max-height: 90vh; overflow: hidden; animation: slideIn 0.3s ease; display: flex; flex-direction: column; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #eee; position: sticky; top: 0; background: linear-gradient(135deg,#FDC2CC 0%,#FFF1F3 100%); z-index: 10; border-radius: 12px 12px 0 0; flex-shrink: 0; }
+.modal-header h3 { margin: 0; font-size: 18px; color: white; }
+.close { font-size: 28px; cursor: pointer; color: white; line-height: 1; opacity: 0.8; }
+.close:hover { opacity: 1; }
+.modal-body { padding: 20px; max-height: calc(90vh - 80px); overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+.modal-post-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+.modal-date { color: #6c757d; font-size: 14px; }
+.modal-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.modal-content-text { margin-bottom: 20px; line-height: 1.6; white-space: pre-line; }
+.image-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; max-width: 80%; margin-top: 15px; }
+.image-grid > div { aspect-ratio: 1; overflow: hidden; border-radius: 8px; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.image-grid img { width: 193px; height: 193px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.image-grid img:hover, .image-grid > div:hover { transform: scale(1.05); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+.modal-comment-section { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
+.modal-comment-btn { background: linear-gradient(135deg,#FDC2CC 0%,#FFF1F3 100%); color: #333; border: none; padding: 10px 20px; border-radius: 25px; font-size: 14px; cursor: pointer; transition: all 0.3s ease; margin-bottom: 20px; display: inline-block; box-shadow: 0 3px 10px rgba(253,194,204,0.3); font-weight: 500; }
+.modal-comment-btn:hover { transform: translateY(-2px); }
+.comments-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
+.comments-title { color: #333; margin-bottom: 20px; font-size: 16px; }
+.comments-list { max-height: 300px; overflow-y: auto; }
+.comment-item { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #FDC2CC; }
+.comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.comment-author { font-size: 12px !important; font-weight: 600; color: #FDC2CC; margin-right: 8px; opacity: 0.9; }
+.comment-date { color: #6c757d; font-size: 12px; }
+.comment-content { color: #333; line-height: 1.5; margin-bottom: 10px; white-space: pre-line; word-break: break-word; overflow-wrap: break-word; max-width: 100%; display: inline-block; }
+.comment-actions { display: flex; gap: 10px; }
+.comment-edit-btn, .comment-delete-btn { background: none; border: none; color: #667eea; cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 4px; transition: background 0.2s ease; }
+.comment-edit-btn:hover { background: #e8f0fe; }
+.comment-delete-btn { color: #dc3545; }
+.comment-delete-btn:hover { background: #ffeaea; }
+.no-comments { text-align: center; color: #6c757d; padding: 20px; font-style: italic; }
+.comment-modal { max-width: 500px; }
+.comment-user-info { display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem; background: rgba(253,194,204,0.1); border-radius: 10px; margin-bottom: 0.5rem; }
+.comment-user-avatar { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg,#FDC2CC,#FFF1F3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.comment-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.comment-user-avatar span { color: white; font-weight: bold; }
+.comment-username { color: #666; font-size: 0.9rem; }
+.comment-avatar { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg,#FDC2CC,#FFF1F3); display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; margin-right: 4px; flex-shrink: 0; }
+.comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.comment-avatar-text { color: white; font-size: 0.75rem; font-weight: bold; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #333; }
+.form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical; min-height: 100px; box-sizing: border-box; }
+.form-group textarea:focus { outline: none; border-color: #FDC2CC; box-shadow: 0 0 0 2px rgba(253,194,204,0.2); }
+.form-actions { display: flex; gap: 15px; justify-content: flex-end; }
+.submit-btn { background: linear-gradient(135deg,#FDC2CC 0%,#FFF1F3 100%); color: #333; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; }
+.submit-btn:hover { transform: translateY(-2px); }
+.cancel-btn { background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500; }
+.cancel-btn:hover { background: #5a6268; }
+.image-preview-modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); }
+.image-preview-content { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.image-preview-close { position: absolute; top: 20px; right: 35px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 2001; }
+.image-preview-close:hover { opacity: 0.7; }
+#previewImage { max-width: 90%; max-height: 90%; object-fit: contain; }
+.image-nav button { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: none; font-size: 24px; padding: 15px 20px; cursor: pointer; border-radius: 50%; }
+.image-nav button:hover { background: rgba(255,255,255,1); }
+#prevBtn { left: 20px; } #nextBtn { right: 20px; }
+.image-counter { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; background: rgba(0,0,0,0.7); padding: 10px 20px; border-radius: 20px; font-size: 14px; }
+.delete-modal { max-width: 450px; }
+.delete-header { background: linear-gradient(135deg,#dc3545 0%,#c82333 100%); border-radius: 12px 12px 0 0; }
+.delete-header h3 { color: white; }
+.delete-actions { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
+.confirm-delete-btn { background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500; }
+.confirm-delete-btn:hover { background: #c82333; }
+.message-toast { position: fixed; top: 20px; right: 20px; background: #FDC2CC; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 9999; display: none; animation: slideInRight 0.3s ease; min-width: 250px; text-align: center; }
+.message-toast.success { background: #FDC2CC; }
+.message-toast.error { background: #dc3545; }
+.message-toast.warning { background: #ffc107; color: #333; }
+.mic-emoji-btn { background: linear-gradient(135deg,#ff6b8a,#ff4d6d); border: none; border-radius: 24px; color: #fff; font-size: 0.92rem; font-weight: 600; cursor: pointer; padding: 8px 16px; user-select: none; -webkit-user-select: none; touch-action: none; box-shadow: 0 2px 8px rgba(255,77,109,0.3); white-space: nowrap; }
+.mic-emoji-btn.recording { background: linear-gradient(135deg,#e63950,#c0002a); transform: scale(0.96); }
+.voice-record-status { font-size: 0.82rem; color: #f87171; min-height: 18px; margin-bottom: 2px; text-align: center; }
+.voice-preview { display: flex; align-items: center; gap: 8px; background: rgba(253,194,204,0.12); border-radius: 20px; padding: 6px 12px; margin: 6px 0; }
+.voice-bubble { display: inline-flex; align-items: center; gap: 8px; background: rgba(253,194,204,0.15); border: 1px solid rgba(253,194,204,0.35); border-radius: 18px; padding: 7px 14px; cursor: pointer; min-width: 90px; max-width: 200px; user-select: none; }
+.voice-bubble:hover { background: rgba(253,194,204,0.28); }
+.voice-bubble.playing { background: rgba(253,194,204,0.35); }
+.voice-bubble-play { width: 28px; height: 28px; border-radius: 50%; background: #FDC2CC; border: none; color: #fff; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; pointer-events: none; }
+.voice-wave { display: flex; align-items: center; gap: 2px; flex: 1; }
+.voice-wave span { display: inline-block; width: 3px; border-radius: 2px; background: #FDC2CC; opacity: 0.7; }
+.voice-wave span:nth-child(1){height:6px} .voice-wave span:nth-child(2){height:12px} .voice-wave span:nth-child(3){height:8px} .voice-wave span:nth-child(4){height:16px} .voice-wave span:nth-child(5){height:10px} .voice-wave span:nth-child(6){height:6px}
+.voice-bubble.playing .voice-wave span { animation: wave-anim 0.8s infinite ease-in-out; }
+@keyframes wave-anim { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.8)} }
+.voice-bubble-duration { font-size: 0.78rem; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+
+@keyframes cardFadeIn { 0%{opacity:0;transform:translateY(20px)} 50%{opacity:0.5} 100%{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes slideIn { from{transform:translateY(-50px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+
+@media (max-width: 768px) {
+    .friend-header-card { padding: 1.5rem; }
+    .post-card { flex-direction: row; padding: 15px; align-items: flex-start; background: rgba(255,255,255,0.25); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.4); }
+    .post-content-wrapper { padding-right: 0; margin-bottom: 10px; }
+    .post-actions { justify-content: flex-end; padding-top: 0; align-items: flex-end; width: auto; }
+    .edit-btn, .delete-btn { width: auto; min-width: 60px; }
+    .modal-content { width: 95%; margin: 10px auto; max-height: 90vh; }
+    .image-grid { grid-template-columns: repeat(3,1fr); max-width: 100%; gap: 6px; }
+    .image-grid img { width: 100%; height: auto; aspect-ratio: 1; }
+    .pagination { padding: 10px 15px; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; }
+    .pagination-btn { padding: 6px 10px; font-size: 12px; white-space: nowrap; }
+    .pagination-num { width: 32px; height: 32px; font-size: 14px; min-width: 32px; }
+    .page-jump { flex-direction: column; gap: 8px; text-align: center; }
+    .jump-input { justify-content: center; }
+    .message-toast { right: 10px; left: 10px; min-width: auto; }
+}
+@media (max-width: 480px) {
+    .image-grid { gap: 4px; }
+    .image-grid img { width: 100%; height: auto; aspect-ratio: 1; }
+    .post-card { padding: 10px; }
+    .post-title { font-size: 18px; }
+    .post-content { font-size: 14px; }
+    .delete-btn, .edit-btn { padding: 6px 10px; font-size: 12px; min-width: 55px; }
+}
+@supports not (backdrop-filter: blur(10px)) {
+    .friend-header-card, .post-card { background: rgba(255,255,255,0.4); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+    .friend-header-card::before, .post-card::before { display: none; }
+}
+</style>
+
+<script>
+    let currentImages = [];
+    let currentImageIndex = 0;
+    let currentDeletePostId = null;
+    let currentPostId = null;
+    let currentCommentId = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordingStartTime = null;
+    let recordingTimer = null;
+    let recordedBlob = null;
+    let recordedDuration = 0;
+    let previewAudio = null;
+    let currentVoicePath = null;
+    let currentVoiceDuration = 0;
+    let currentBubbleAudio = null;
+    let currentBubbleId = null;
+    let audioContext = null;
+    let recordingStream = null;
+    let pcmChunks = [];
+    let sampleRate = 44100;
+
+    function jumpToPage() {
+        const input = document.getElementById('jumpPageInput');
+        const page = parseInt(input.value);
+        const maxPage = parseInt(input.max);
+        if (page && page >= 1 && page <= maxPage) {
+            window.location.href = `/friend_posts?page=${page}`;
+        } else {
+            alert(`请输入1到${maxPage}之间的页码`);
+            input.focus();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const jumpInput = document.getElementById('jumpPageInput');
+        if (jumpInput) {
+            jumpInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') jumpToPage();
+            });
+        }
+    });
+
+    function getThumbPath(origPath) {
+        if (!origPath) return origPath;
+        const basename = origPath.split('/').pop();
+        if (basename.startsWith('orig_')) {
+            const uid = basename.replace(/^orig_/, '').replace(/\.[^.]+$/, '');
+            const dir = origPath.substring(0, origPath.lastIndexOf('/'));
+            return dir + '/thumb_' + uid + '.webp';
+        }
+        return origPath;
+    }
+
+    function fetchAuthorInfo(authorId, authorName, authorInfoElement) {
+        fetch(`/get_user_info/${authorId}`)
+            .then(res => res.json())
+            .then(data => {
+                let avatarHtml = data.avatar_path
+                    ? `<div class="comment-avatar" style="margin-right:8px;"><img src="/${data.avatar_path}" alt="头像" style="width:28px;height:28px;border-radius:50%;object-fit:cover;"></div>`
+                    : `<div class="comment-avatar" style="margin-right:8px;"><span class="comment-avatar-text" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:linear-gradient(135deg,#FDC2CC,#FFF1F3);border-radius:50%;color:white;font-weight:bold;">${authorName[0]}</span></div>`;
+                const adminIcon = data.is_admin ? `<img src="/static/img/dav.png" alt="大V" style="height:1.2em;width:auto;vertical-align:middle;margin-left:4px;" onerror="this.style.display='none'">` : '';
+                authorInfoElement.innerHTML = `<div style="display:flex;align-items:center;gap:6px;width:100%;">${avatarHtml}<a href="/user/${authorId}" style="color:#FDC2CC;text-decoration:none;font-size:0.9rem;display:flex;align-items:center;">${authorName}${adminIcon}</a></div>`;
+                authorInfoElement.style.display = 'flex';
+                authorInfoElement.style.alignItems = 'center';
+            })
+            .catch(() => {
+                authorInfoElement.innerHTML = `<a href="/user/${authorId}" style="color:#FDC2CC;text-decoration:none;font-size:0.9rem;">👤 ${authorName}</a>`;
+                authorInfoElement.style.display = 'flex';
+            });
+    }
+
+    function openPostModal(postId, title, content, imagePaths, tags, date, author, authorId, thumbPaths) {
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalContent').textContent = content;
+        document.getElementById('modalDate').innerHTML = '<img src="/static/img/calendar.png" alt="日历" style="width:1.2em;height:1.2em;vertical-align:middle;" onerror="this.style.display=\'none\'"> ' + date;
+        const authorInfo = document.getElementById('modalAuthorInfo');
+        if (author && authorId) { fetchAuthorInfo(authorId, author, authorInfo); } else { authorInfo.style.display = 'none'; }
+        const tagsContainer = document.getElementById('modalTags');
+        tagsContainer.innerHTML = '';
+        if (tags) {
+            tags.split(',').forEach(tag => {
+                if (tag.trim()) { const el = document.createElement('span'); el.className = 'tag'; el.textContent = tag.trim(); tagsContainer.appendChild(el); }
+            });
+        }
+        currentImages = [];
+        if (imagePaths) {
+            if (Array.isArray(imagePaths)) currentImages = imagePaths;
+            else if (typeof imagePaths === 'string') { try { currentImages = JSON.parse(imagePaths); } catch(e) { currentImages = []; } }
+        }
+        const thumbsToUse = (thumbPaths && Array.isArray(thumbPaths) && thumbPaths.length === currentImages.length) ? thumbPaths : currentImages.map(p => getThumbPath(p));
+        const imageGrid = document.getElementById('imageGrid');
+        imageGrid.innerHTML = '';
+        if (currentImages.length > 0) {
+            const displayCount = Math.min(currentImages.length, 9);
+            const showMore = currentImages.length > 9;
+            for (let i = 0; i < displayCount; i++) {
+                const img = document.createElement('img');
+                img.src = '/' + thumbsToUse[i]; img.alt = `图片 ${i+1}`; img.loading = 'lazy';
+                const container = document.createElement('div');
+                container.style.cssText = 'position:relative;display:inline-block;width:100%;height:100%;';
+                if (i === 8 && showMore) {
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:24px;border-radius:8px;';
+                    overlay.textContent = `+${currentImages.length - 9}`;
+                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                    container.appendChild(img); container.appendChild(overlay);
+                } else { img.style.cssText = 'width:100%;height:100%;object-fit:cover;'; container.appendChild(img); }
+                container.onclick = () => openImagePreview(i);
+                imageGrid.appendChild(container);
+            }
+        } else { imageGrid.innerHTML = '<p class="no-images">暂无图片</p>'; }
+        document.getElementById('postModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function openPostModalSafe(element) {
+        try {
+            const postData = JSON.parse(element.dataset.post);
+            if (!postData || !postData.id) throw new Error('文章数据无效');
+            currentPostId = parseInt(postData.id);
+            const thumbPaths = (postData.images || []).map(p => getThumbPath(p));
+            openPostModal(postData.id, postData.title, postData.content, postData.images, postData.tags, postData.date, postData.author, postData.author_id, thumbPaths);
+            loadComments(currentPostId);
+        } catch(e) { console.error('解析文章数据失败:', e); alert('无法打开文章详情，请刷新页面重试'); }
+    }
+
+    function closePostModal() { document.getElementById('postModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
+
+    function openImagePreview(index) {
+        currentImageIndex = index;
+        document.getElementById('previewImage').src = '/' + getThumbPath(currentImages[index]);
+        document.getElementById('imagePreview').style.display = 'block';
+        document.getElementById('imageCounter').textContent = `${index+1} / ${currentImages.length}`;
+        updateNavButtons();
+    }
+    function closeImagePreview() { document.getElementById('imagePreview').style.display = 'none'; }
+    function prevImage() {
+        if (currentImageIndex > 0) { currentImageIndex--; document.getElementById('previewImage').src = '/' + getThumbPath(currentImages[currentImageIndex]); document.getElementById('imageCounter').textContent = `${currentImageIndex+1} / ${currentImages.length}`; updateNavButtons(); }
+    }
+    function nextImage() {
+        if (currentImageIndex < currentImages.length - 1) { currentImageIndex++; document.getElementById('previewImage').src = '/' + getThumbPath(currentImages[currentImageIndex]); document.getElementById('imageCounter').textContent = `${currentImageIndex+1} / ${currentImages.length}`; updateNavButtons(); }
+    }
+    function updateNavButtons() {
+        document.getElementById('prevBtn').style.opacity = currentImageIndex === 0 ? '0.3' : '1';
+        document.getElementById('nextBtn').style.opacity = currentImageIndex === currentImages.length - 1 ? '0.3' : '1';
+    }
+
+    function editPost(postId) { window.location.href = `/edit_post/${postId}`; }
+    function deletePost(postId, postTitle) {
+        currentDeletePostId = postId;
+        document.getElementById('deleteMessage').textContent = `确定要删除《${postTitle}》吗？此操作无法撤销。`;
+        document.getElementById('deleteModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        document.getElementById('confirmDeleteBtn').onclick = function() {
+            fetch(`/delete_post/${postId}`, { method: 'POST' }).then(res => res.json()).then(data => {
+                if (data.success) { closeDeleteModal(); location.reload(); } else showMessage(data.message || '删除失败', 'error');
+            }).catch(() => showMessage('删除失败，请重试', 'error'));
+        };
+    }
+    function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
+
+    function openCommentModal(postId, postTitle, commentId = null, content = '') {
+        if (!postId || isNaN(postId)) return;
+        currentPostId = parseInt(postId); currentCommentId = commentId;
+        document.getElementById('commentPostId').value = currentPostId;
+        document.getElementById('commentId').value = commentId || '';
+        document.getElementById('commentContent').value = content;
+        document.getElementById('commentModalTitle').textContent = commentId ? '编辑评论' : `为《${postTitle}》添加评论`;
+        document.getElementById('commentModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeCommentModal() {
+        resetVoiceState();
+        document.getElementById('commentModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        currentCommentId = null;
+        document.getElementById('commentForm').reset();
+    }
+
+    function loadComments(postId) {
+        if (!postId || isNaN(postId)) return;
+        fetch(`/get_comments/${parseInt(postId)}`).then(res => res.json()).then(data => {
+            const commentsList = document.getElementById('commentsList');
+            document.getElementById('commentCount').textContent = data.comments.length;
+            if (data.comments.length === 0) {
+                commentsList.innerHTML = '<div class="no-comments">暂无评论！</div>';
+            } else {
+                commentsList.innerHTML = data.comments.map(comment => {
+                    let avatarHtml = comment.author_avatar
+                        ? `<div class="comment-avatar"><img src="/${comment.author_avatar}" alt="头像"></div>`
+                        : `<div class="comment-avatar"><span class="comment-avatar-text">${comment.author ? comment.author[0] : '?'}</span></div>`;
+                    const adminIcon = comment.is_admin ? `<img src="/static/img/dav.png" alt="大V" style="height:1.5em;width:auto;vertical-align:middle;margin-left:2px;" onerror="this.style.display='none'">` : '';
+                    let actionsHtml = '';
+                    if (comment.can_edit) {
+                        actionsHtml = comment.voice_path
+                            ? `<div class="comment-actions"><button class="comment-delete-btn" onclick="deleteComment(${comment.id})">🗑️ 删除</button></div>`
+                            : `<div class="comment-actions"><button class="comment-edit-btn" onclick="editComment(${comment.id}, \`${comment.content.replace(/`/g, '\\`')}\`)">✏️ 编辑</button><button class="comment-delete-btn" onclick="deleteComment(${comment.id})">🗑️ 删除</button></div>`;
+                    }
+                    let authorHtml = comment.author_id
+                        ? `<a href="/user/${comment.author_id}" style="color:#FDC2CC;text-decoration:none;" class="comment-author">${comment.author}${adminIcon}</a>`
+                        : `<span class="comment-author">${comment.author}${adminIcon}</span>`;
+                    return `<div class="comment-item"><div class="comment-header"><div style="display:flex;align-items:center;gap:6px;">${avatarHtml}${authorHtml}<span class="comment-date">${comment.date}</span></div>${actionsHtml}</div><div class="comment-content">${comment.voice_path ? renderVoiceBubble(comment.voice_path, comment.voice_duration || 0, comment.id) : comment.content}</div></div>`;
+                }).join('');
+            }
+        }).catch(() => {
+            const commentsList = document.getElementById('commentsList');
+            if (commentsList) commentsList.innerHTML = '<div class="no-comments" style="color:#dc3545;">加载评论失败</div>';
+        });
+    }
+
+    function editComment(commentId, content) { if (!currentPostId) return; openCommentModal(currentPostId, '', commentId, content); }
+    function deleteComment(commentId) {
+        if (!currentPostId || !confirm('确定要删除这条评论吗？')) return;
+        fetch(`/delete_comment/${commentId}`, { method: 'POST', headers: {'Content-Type': 'application/json'} })
+            .then(res => res.json()).then(data => {
+                if (data.success) { loadComments(currentPostId); showMessage('评论删除成功！', 'success'); }
+                else showMessage('删除失败: ' + data.message, 'error');
+            }).catch(() => showMessage('删除失败，请重试', 'error'));
+    }
+
+    document.getElementById('commentForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const postId = parseInt(formData.get('post_id'));
+        if (!postId || isNaN(postId)) { showMessage('文章信息错误', 'error'); return; }
+        const commentId = formData.get('comment_id');
+        const url = commentId ? `/edit_comment/${commentId}` : '/add_comment';
+        const isEdit = !!commentId;
+        let voicePath = null, voiceDuration = null;
+        let textContent = formData.get('content').trim();
+        if (recordedBlob) {
+            const vForm = new FormData(); vForm.append('voice', recordedBlob, 'voice.wav'); vForm.append('duration', recordedDuration);
+            try {
+                const res = await fetch('/upload_voice', { method: 'POST', body: vForm });
+                const vData = await res.json();
+                if (!vData.success) { showMessage('语音上传失败: ' + vData.message, 'error'); return; }
+                voicePath = vData.voice_path; voiceDuration = vData.duration;
+                if (!textContent) textContent = '[语音评论]';
+            } catch(err) { showMessage('语音上传失败，请重试', 'error'); return; }
+        } else { if (!textContent) { showMessage('评论内容不能为空', 'warning'); return; } }
+        fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ post_id: postId, content: textContent, voice_path: voicePath, voice_duration: voiceDuration }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) { closeCommentModal(); loadComments(currentPostId); showMessage(isEdit ? '评论编辑成功！' : '评论添加成功！', 'success'); }
+                else showMessage(data.message || '操作失败', 'error');
+            }).catch(() => showMessage('提交失败，请重试', 'error'));
+    });
+
+    function showMessage(message, type = 'success') {
+        const toast = document.getElementById('messageToast');
+        document.getElementById('messageText').textContent = message;
+        toast.className = `message-toast ${type}`; toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (document.getElementById('imagePreview').style.display === 'block') {
+            if (e.key === 'ArrowLeft') prevImage(); else if (e.key === 'ArrowRight') nextImage(); else if (e.key === 'Escape') closeImagePreview();
+        } else if (document.getElementById('postModal').style.display === 'block') { if (e.key === 'Escape') closePostModal(); }
+        else if (document.getElementById('deleteModal').style.display === 'block') { if (e.key === 'Escape') closeDeleteModal(); }
+        else if (document.getElementById('commentModal').style.display === 'block') { if (e.key === 'Escape') closeCommentModal(); }
+    });
+    window.onclick = function(event) {
+        if (event.target === document.getElementById('postModal')) closePostModal();
+        else if (event.target === document.getElementById('imagePreview')) closeImagePreview();
+        else if (event.target === document.getElementById('deleteModal')) closeDeleteModal();
+        else if (event.target === document.getElementById('commentModal')) closeCommentModal();
+    };
+
+    document.addEventListener('touchstart', function(e) {
+        var btn = e.target && (e.target.id === 'voiceRecordBtn' ? e.target : (e.target.closest && e.target.closest('#voiceRecordBtn')));
+        if (btn) { e.preventDefault(); startRecording(); }
+    }, { passive: false, capture: true });
+    document.addEventListener('mouseup', function() { stopRecording(); });
+    document.addEventListener('mouseleave', function() { stopRecording(); });
+    document.addEventListener('contextmenu', function(e) { if (e.target && e.target.id === 'voiceRecordBtn') e.preventDefault(); });
+
+    function startRecording() {
+        if (audioContext) return;
+        audioContext = 'pending'; clearVoiceRecording();
+        var isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (!isSecure) { audioContext = null; document.getElementById('voiceRecordStatus').textContent = '⚠️ 语音功能需要 HTTPS 环境'; return; }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { audioContext = null; document.getElementById('voiceRecordStatus').textContent = '⚠️ 当前浏览器不支持录音'; return; }
+        function doRecord(stream) {
+            if (audioContext !== 'pending') return;
+            recordingStream = stream;
+            var ACtor = window.AudioContext || window.webkitAudioContext; var ctx = new ACtor();
+            audioContext = ctx; sampleRate = ctx.sampleRate;
+            var source = ctx.createMediaStreamSource(stream); var processor = ctx.createScriptProcessor(4096, 1, 1);
+            pcmChunks = [];
+            processor.onaudioprocess = function(ev) { pcmChunks.push(new Float32Array(ev.inputBuffer.getChannelData(0))); };
+            source.connect(processor); processor.connect(ctx.destination);
+            ctx._processor = processor; ctx._source = source;
+            recordingStartTime = Date.now();
+            var btn = document.getElementById('voiceRecordBtn'); if (btn) btn.classList.add('recording');
+            document.getElementById('voiceRecordStatus').textContent = '🔴 录音中...';
+            recordingTimer = setInterval(function() {
+                var sec = Math.round((Date.now() - recordingStartTime) / 1000);
+                document.getElementById('voiceRecordStatus').textContent = '🔴 录音中... ' + sec + 's';
+                if (sec >= 60) stopRecording();
+            }, 500);
+        }
+        document.getElementById('voiceRecordStatus').textContent = '🎙️ 请求麦克风权限...';
+        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+            .then(function(stream) { if (audioContext !== 'pending') { stream.getTracks().forEach(t => t.stop()); return; } doRecord(stream); })
+            .catch(function(err) {
+                audioContext = null;
+                var msg = err.name === 'NotAllowedError' ? '请允许麦克风权限后重试' : err.name === 'NotFoundError' ? '未检测到麦克风设备' : '麦克风错误：' + err.message;
+                document.getElementById('voiceRecordStatus').textContent = '⚠️ ' + msg;
+            });
+    }
+
+    function stopRecording() {
+        if (audioContext === 'pending') { audioContext = null; return; }
+        if (!audioContext || !recordingStream) return;
+        if (recordingStartTime && Date.now() - recordingStartTime < 300) { clearRecordingResources(); return; }
+        var ctx = audioContext, chunks = pcmChunks, sr = sampleRate, startTime = recordingStartTime;
+        clearRecordingResources();
+        recordedDuration = Math.round((Date.now() - startTime) / 1000) || 1;
+        var totalLen = 0; for (var i = 0; i < chunks.length; i++) totalLen += chunks[i].length;
+        if (totalLen === 0) { document.getElementById('voiceRecordStatus').textContent = '⚠️ 录音太短，请重试'; return; }
+        var merged = new Float32Array(totalLen), offset = 0;
+        for (var i = 0; i < chunks.length; i++) { merged.set(chunks[i], offset); offset += chunks[i].length; }
+        recordedBlob = encodeWAV(merged, sr);
+        document.getElementById('voiceRecordStatus').textContent = '';
+        submitVoiceComment();
+    }
+
+    function clearRecordingResources() {
+        if (audioContext && audioContext !== 'pending') {
+            try { if (audioContext._processor) audioContext._processor.onaudioprocess = null; if (audioContext._source) audioContext._source.disconnect(); if (audioContext._processor) audioContext._processor.disconnect(); audioContext.close().catch(function(){}); } catch(e) {}
+        }
+        audioContext = null;
+        if (recordingStream) { recordingStream.getTracks().forEach(t => t.stop()); recordingStream = null; }
+        pcmChunks = []; clearInterval(recordingTimer);
+        var btn = document.getElementById('voiceRecordBtn'); if (btn) btn.classList.remove('recording');
+        recordingStartTime = null;
+    }
+
+    function resetVoiceState() { clearVoiceRecording(); clearRecordingResources(); if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); clearInterval(recordingTimer); }
+
+    function clearVoiceRecording() {
+        recordedBlob = null; recordedDuration = 0; currentVoicePath = null; currentVoiceDuration = 0;
+        if (previewAudio) { previewAudio.pause(); previewAudio = null; }
+        var preview = document.getElementById('voicePreview'); if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+        var status = document.getElementById('voiceRecordStatus'); if (status) status.textContent = '';
+    }
+
+    function encodeWAV(samples, sr) {
+        var buf = new ArrayBuffer(44 + samples.length * 2), view = new DataView(buf);
+        function ws(off, str) { for (var i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); }
+        ws(0,'RIFF'); view.setUint32(4, 36 + samples.length * 2, true); ws(8,'WAVE'); ws(12,'fmt ');
+        view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true);
+        view.setUint32(24,sr,true); view.setUint32(28,sr*2,true); view.setUint16(32,2,true); view.setUint16(34,16,true);
+        ws(36,'data'); view.setUint32(40, samples.length * 2, true);
+        var idx = 44;
+        for (var s = 0; s < samples.length; s++) {
+            var v = samples[s] < -1 ? -1 : samples[s] > 1 ? 1 : samples[s];
+            view.setInt16(idx, v < 0 ? v * 0x8000 : v * 0x7FFF, true); idx += 2;
+        }
+        return new Blob([buf], { type: 'audio/wav' });
+    }
+
+    function submitVoiceComment() {
+        var postId = parseInt(document.getElementById('commentPostId').value);
+        if (!postId || isNaN(postId)) { showMessage('请先打开评论框', 'error'); clearRecordingResources(); return; }
+        if (!recordedBlob) { showMessage('没有录音内容', 'error'); clearRecordingResources(); return; }
+        document.getElementById('voiceRecordStatus').textContent = '上传中...';
+        var vForm = new FormData(); vForm.append('voice', recordedBlob, 'voice.wav'); vForm.append('duration', recordedDuration);
+        fetch('/upload_voice', { method: 'POST', body: vForm })
+            .then(res => res.json()).then(vData => {
+                if (!vData.success) { showMessage('语音上传失败: ' + vData.message, 'error'); clearRecordingResources(); return; }
+                return fetch('/add_comment', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ post_id: postId, content: '[语音评论]', voice_path: vData.voice_path, voice_duration: vData.duration }) });
+            }).then(res => res.json()).then(data => {
+                if (data.success) { clearRecordingResources(); clearVoiceRecording(); closeCommentModal(); loadComments(currentPostId); showMessage('语音评论发送成功！', 'success'); }
+                else { showMessage(data.message || '提交失败', 'error'); document.getElementById('voiceRecordStatus').textContent = ''; clearRecordingResources(); }
+            }).catch(() => { showMessage('提交失败，请重试', 'error'); document.getElementById('voiceRecordStatus').textContent = ''; clearRecordingResources(); });
+    }
+
+    function renderVoiceBubble(voicePath, duration, commentId) {
+        return `<div class="voice-bubble" id="vbubble-${commentId}" onclick="playVoiceBubble('/${voicePath}', ${commentId})"><div class="voice-bubble-play">▶</div><div class="voice-wave"><span></span><span></span><span></span><span></span><span></span><span></span></div><span class="voice-bubble-duration">${duration || 0}"</span></div>`;
+    }
+
+    function playVoiceBubble(url, commentId) {
+        if (currentBubbleAudio && !currentBubbleAudio.paused) {
+            currentBubbleAudio.pause(); currentBubbleAudio.currentTime = 0;
+            const oldBubble = document.getElementById('vbubble-' + currentBubbleId);
+            if (oldBubble) { oldBubble.classList.remove('playing'); oldBubble.querySelector('.voice-bubble-play').textContent = '▶'; }
+            if (currentBubbleId === commentId) { currentBubbleAudio = null; currentBubbleId = null; return; }
+        }
+        const bubble = document.getElementById('vbubble-' + commentId);
+        const audio = new Audio(url); currentBubbleAudio = audio; currentBubbleId = commentId; audio.play();
+        if (bubble) { bubble.classList.add('playing'); bubble.querySelector('.voice-bubble-play').textContent = '⏸'; }
+        audio.onended = () => {
+            if (bubble) { bubble.classList.remove('playing'); bubble.querySelector('.voice-bubble-play').textContent = '▶'; }
+            currentBubbleAudio = null; currentBubbleId = null;
+        };
+    }
+
+    (function() {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+        if (isMobile) document.body.classList.add('mobile-device');
+        document.addEventListener('DOMContentLoaded', () => { document.body.classList.add('loaded'); });
+        window.addEventListener('load', () => { setTimeout(() => { document.body.classList.add('fully-loaded'); }, 100); });
+    })();
+</script>
+{% endblock %}
