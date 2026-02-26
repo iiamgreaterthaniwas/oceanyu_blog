@@ -1444,6 +1444,17 @@
     let pcmChunks = [];
     let sampleRate = 44100;
 
+    function getThumbPath(origPath) {
+        if (!origPath) return origPath;
+        const basename = origPath.split('/').pop();
+        if (basename.startsWith('orig_')) {
+            const uid = basename.replace(/^orig_/, '').replace(/\.[^.]+$/, '');
+            const dir = origPath.substring(0, origPath.lastIndexOf('/'));
+            return dir + '/thumb_' + uid + '.webp';
+        }
+        return origPath;
+    }
+
     // 分页跳转函数 - 适配用户个人页面
     function jumpToPage(userId) {
         const input = document.getElementById('jumpPageInput');
@@ -1518,7 +1529,7 @@
             });
     }
 
-    function openPostModal(postId, title, content, imagePaths, tags, date, author, authorId) {
+   function openPostModal(postId, title, content, imagePaths, tags, date, author, authorId, thumbPaths) {
         document.getElementById('modalTitle').textContent = title;
         document.getElementById('modalContent').textContent = content;
         document.getElementById('modalDate').innerHTML = 
@@ -1545,6 +1556,7 @@
             });
         }
 
+        // 解析原图路径
         currentImages = [];
         if (imagePaths) {
             if (Array.isArray(imagePaths)) {
@@ -1552,6 +1564,15 @@
             } else if (typeof imagePaths === 'string') {
                 try { currentImages = JSON.parse(imagePaths); } catch (e) { currentImages = []; }
             }
+        }
+
+        // 解析缩略图路径
+        let thumbsToUse = [];
+        if (thumbPaths && Array.isArray(thumbPaths) && thumbPaths.length === currentImages.length) {
+            thumbsToUse = thumbPaths;
+        } else {
+            // 如果没有传入缩略图，则根据原图路径生成
+            thumbsToUse = currentImages.map(imgPath => getThumbPath(imgPath));
         }
 
         const imageGrid = document.getElementById('imageGrid');
@@ -1562,8 +1583,10 @@
             const showMore = currentImages.length > 9;
             for (let i = 0; i < displayCount; i++) {
                 const img = document.createElement('img');
-                img.src = '/' + currentImages[i];
+                // 使用缩略图路径
+                img.src = '/' + thumbsToUse[i];
                 img.alt = `图片 ${i + 1}`;
+                img.loading = 'lazy';
 
                 const container = document.createElement('div');
                 container.style.cssText = 'position:relative;display:inline-block;width:100%;height:100%;';
@@ -1596,15 +1619,35 @@
             const postData = JSON.parse(element.dataset.post);
             if (!postData || !postData.id) throw new Error('文章数据无效');
             currentPostId = parseInt(postData.id);
+            
+            // 处理图片数据 - 确保是数组
+            let imagesArray = [];
+            if (postData.images) {
+                if (Array.isArray(postData.images)) {
+                    imagesArray = postData.images;
+                } else if (typeof postData.images === 'string') {
+                    try {
+                        imagesArray = JSON.parse(postData.images);
+                    } catch (e) {
+                        // 如果解析失败，可能是空字符串或其他
+                        imagesArray = [];
+                    }
+                }
+            }
+            
+            // 生成缩略图路径列表
+            const thumbPaths = imagesArray.map(imgPath => getThumbPath(imgPath));
+            
             openPostModal(
                 postData.id,
                 postData.title,
                 postData.content,
-                postData.images,
+                imagesArray,  // 使用处理后的数组
                 postData.tags,
                 postData.date,
                 postData.author,
-                postData.author_id
+                postData.author_id,
+                thumbPaths  // 传递缩略图路径
             );
             loadComments(currentPostId);
         } catch (e) {
@@ -1612,40 +1655,44 @@
             alert('无法打开文章详情，请刷新页面重试');
         }
     }
-
     function closePostModal() { 
         document.getElementById('postModal').style.display = 'none'; 
         document.body.style.overflow = 'auto'; 
     }
 
-    function openImagePreview(index) { 
-        currentImageIndex = index; 
-        document.getElementById('previewImage').src = '/' + currentImages[index]; 
-        document.getElementById('imagePreview').style.display = 'block'; 
-        document.getElementById('imageCounter').textContent = `${index + 1} / ${currentImages.length}`; 
-        updateNavButtons(); 
+    function openImagePreview(index) {
+        currentImageIndex = index;
+        const origPath = currentImages[index];
+        // 大图预览：使用缩略图（或原图，取决于你的需求）
+        document.getElementById('previewImage').src = '/' + getThumbPath(origPath);
+        document.getElementById('imagePreview').style.display = 'block';
+        document.getElementById('imageCounter').textContent = `${index + 1} / ${currentImages.length}`;
+        updateNavButtons();
     }
+
 
     function closeImagePreview() { 
         document.getElementById('imagePreview').style.display = 'none'; 
     }
 
-    function prevImage() { 
-        if (currentImageIndex > 0) { 
-            currentImageIndex--; 
-            document.getElementById('previewImage').src = '/' + currentImages[currentImageIndex]; 
-            document.getElementById('imageCounter').textContent = `${currentImageIndex + 1} / ${currentImages.length}`; 
-            updateNavButtons(); 
-        } 
+    function prevImage() {
+        if (currentImageIndex > 0) {
+            currentImageIndex--;
+            const origPath = currentImages[currentImageIndex];
+            document.getElementById('previewImage').src = '/' + getThumbPath(origPath);
+            document.getElementById('imageCounter').textContent = `${currentImageIndex + 1} / ${currentImages.length}`;
+            updateNavButtons();
+        }
     }
 
-    function nextImage() { 
-        if (currentImageIndex < currentImages.length - 1) { 
-            currentImageIndex++; 
-            document.getElementById('previewImage').src = '/' + currentImages[currentImageIndex]; 
-            document.getElementById('imageCounter').textContent = `${currentImageIndex + 1} / ${currentImages.length}`; 
-            updateNavButtons(); 
-        } 
+    function nextImage() {
+        if (currentImageIndex < currentImages.length - 1) {
+            currentImageIndex++;
+            const origPath = currentImages[currentImageIndex];
+            document.getElementById('previewImage').src = '/' + getThumbPath(origPath);
+            document.getElementById('imageCounter').textContent = `${currentImageIndex + 1} / ${currentImages.length}`;
+            updateNavButtons();
+        }
     }
 
     function updateNavButtons() { 

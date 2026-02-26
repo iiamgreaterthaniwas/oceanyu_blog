@@ -57,18 +57,7 @@
             {% set can_edit = current_user and (current_user.is_admin or current_user.id == post.user_id) %}
             <div class="post-card"
                  onclick="openPostModalSafe(this)"
-                 data-post='{{
-                   {
-                     "id": post.id,
-                     "title": post.title,
-                     "content": post.content,
-                     "images": post.image_paths_json|safe if post.image_paths_json else [],
-                     "tags": post.tags,
-                     "date": post.date.strftime('%Y-%m-%d'),
-                     "author": post.author_user.username if post.author_user else "匿名",
-                     "author_id": post.user_id
-                   }|tojson
-                 }}'>
+                 data-post='{{ {"id": post.id, "title": post.title, "content": post.content, "images": post.image_paths, "tags": post.tags, "date": post.date.strftime("%Y-%m-%d"), "author": post.author_user.username if post.author_user else "匿名", "author_id": post.user_id}|tojson }}'>
                 <div class="post-content-wrapper">
                     <h3 class="post-title">{{ post.title }}</h3>
                     <div class="post-date">
@@ -277,12 +266,17 @@
     <div id="imagePreview" class="image-preview-modal">
         <div class="image-preview-content">
             <span class="image-preview-close" onclick="closeImagePreview()">&times;</span>
-            <img id="previewImage" src="" alt="预览图片">
+            <div class="image-preview-wrapper">
+                <img id="previewImage" src="" alt="预览图片">
+            </div>
             <div class="image-nav">
                 <button id="prevBtn" onclick="prevImage()">&lt;</button>
                 <button id="nextBtn" onclick="nextImage()">&gt;</button>
             </div>
-            <div id="imageCounter" class="image-counter"></div>
+            <div class="image-bottom-bar">
+                <div id="imageCounter" class="image-counter"></div>
+                <a id="downloadOrigBtn" href="#" download class="download-orig-btn" title="下载原图">⬇ 下载原图</a>
+            </div>
         </div>
     </div>
 
@@ -351,6 +345,8 @@
 .comment-avatar {
     width: 28px;
     height: 28px;
+    min-width: 28px;
+    min-height: 28px;
     border-radius: 50%;
     overflow: hidden;
     background: linear-gradient(135deg, #FDC2CC, #FFF1F3);
@@ -363,9 +359,13 @@
 }
 
 .comment-avatar img {
-    width: 100%;
-    height: 100%;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    border-radius: 50%;
     object-fit: cover;
+    display: block;
 }
 
 .comment-avatar-text {
@@ -393,9 +393,18 @@
         
         /* 评论头像优化 */
         .comment-avatar {
-            width: 22px !important;  /* 稍小的头像 */
+            width: 22px !important;
             height: 22px !important;
+            min-width: 22px !important;
+            min-height: 22px !important;
             margin-right: 2px !important;
+        }
+
+        .comment-avatar img {
+            width: 22px !important;
+            height: 22px !important;
+            min-width: 22px !important;
+            min-height: 22px !important;
         }
         
         .comment-avatar-text {
@@ -1123,18 +1132,71 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
     background-color: rgba(0, 0, 0, 0.95);
 }
 
+
 .image-preview-content {
     position: relative;
     width: 100%; height: 100%;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 12px;
+    padding: 60px 0 30px;
+    box-sizing: border-box;
 }
 
 .image-preview-close { position: absolute; top: 20px; right: 35px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 2001; }
 .image-preview-close:hover { opacity: 0.7; }
 
-#previewImage { max-width: 90%; max-height: 90%; object-fit: contain; }
+/* 图片 + 悬浮按钮的包裹层 */
+.image-preview-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 90%;
+    max-height: 58vh;
+    border-radius: 16px;
+}
+
+#previewImage {
+    max-width: 100%;
+    max-height: 58vh;
+    object-fit: contain;
+    display: block;
+    border-radius: 16px;
+}
+
+/* 图片下方居中工具栏 */
+.image-bottom-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.image-counter {
+    color: white;
+    background: rgba(0, 0, 0, 0.55);
+    padding: 5px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.download-orig-btn {
+    display: inline-block;
+    padding: 6px 20px;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 0.82rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+.download-orig-btn:hover { background: rgba(255,255,255,0.3); color: white; }
 
 .image-nav button {
     position: absolute;
@@ -1165,17 +1227,6 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
     max-height: 4.8em;
 }
 
-.image-counter {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-size: 14px;
-}
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
@@ -1271,7 +1322,8 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
 </style>
 
     <script>
-        let currentImages = [];
+        let currentImages = [];   // 原图路径（用于全屏预览/下载）
+        let currentThumbs = [];   // 缩略图路径（用于网格展示）
         let currentImageIndex = 0;
         let currentDeletePostId = null;
         let currentPostId = null;
@@ -1324,9 +1376,9 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                 // 创建头像HTML
                 let avatarHtml = '';
                 if (data.avatar_path) {
-                    avatarHtml = `<div class="comment-avatar" style="margin-right: 8px;"><img src="/${data.avatar_path}" alt="头像" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;"></div>`;
+                    avatarHtml = `<div class="comment-avatar" style="margin-right: 8px;"><img src="/${data.avatar_path}" alt="头像" style="width:28px;height:28px;min-width:28px;min-height:28px;border-radius:50%;object-fit:cover;display:block;"></div>`;
                 } else {
-                    avatarHtml = `<div class="comment-avatar" style="margin-right: 8px;"><span class="comment-avatar-text" style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #FDC2CC, #FFF1F3); border-radius: 50%; color: white; font-weight: bold;">${authorName[0]}</span></div>`;
+                    avatarHtml = `<div class="comment-avatar" style="margin-right: 8px; width:28px; height:28px; min-width:28px; min-height:28px;"><span class="comment-avatar-text" style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #FDC2CC, #FFF1F3); border-radius: 50%; color: white; font-weight: bold;">${authorName[0]}</span></div>`;
                 }
                 
                 // 管理员图标
@@ -1363,7 +1415,23 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
             authorInfoElement.style.gap = '6px';
         });
 }
-        function openPostModal(postId, title, content, imagePaths, tags, date, author, authorId) {
+        /**
+         * 根据原图路径推算缩略图路径（JS端）。
+         * 新格式：orig_<uid>.ext → thumb_<uid>.webp
+         * 旧格式：无缩略图，返回原路径
+         */
+        function getThumbPath(origPath) {
+            if (!origPath) return origPath;
+            const basename = origPath.split('/').pop();
+            if (basename.startsWith('orig_')) {
+                const uid = basename.replace(/^orig_/, '').replace(/\.[^.]+$/, '');
+                const dir = origPath.substring(0, origPath.lastIndexOf('/'));
+                return dir + '/thumb_' + uid + '.webp';
+            }
+            return origPath; // 旧数据 fallback
+        }
+
+        function openPostModal(postId, title, content, imagePaths, tags, date, author, authorId, thumbPaths) {
             document.getElementById('modalTitle').textContent = title;
             document.getElementById('modalContent').textContent = content;
             document.getElementById('modalDate').innerHTML = 
@@ -1391,6 +1459,7 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                 });
             }
 
+            // 解析原图路径
             currentImages = [];
             if (imagePaths) {
                 if (Array.isArray(imagePaths)) {
@@ -1398,6 +1467,18 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                 } else if (typeof imagePaths === 'string') {
                     try { currentImages = JSON.parse(imagePaths); } catch (e) { currentImages = []; }
                 }
+            }
+
+            // 解析缩略图路径（无则 fallback 到原图）
+            currentThumbs = [];
+            if (thumbPaths && Array.isArray(thumbPaths) && thumbPaths.length === currentImages.length) {
+                currentThumbs = thumbPaths;
+            } else {
+                // 如果没有传入缩略图，则根据原图路径生成
+                currentThumbs = currentImages.map(imgPath => {
+                    // 调用后端的 thumb_path 过滤器逻辑
+                    return getThumbPath(imgPath);
+                });
             }
 
             const imageGrid = document.getElementById('imageGrid');
@@ -1408,8 +1489,10 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
                 const showMore = currentImages.length > 9;
                 for (let i = 0; i < displayCount; i++) {
                     const img = document.createElement('img');
-                    img.src = '/' + currentImages[i];
+                    // 使用缩略图路径（关键修改）
+                    img.src = '/' + currentThumbs[i];
                     img.alt = `图片 ${i + 1}`;
+                    img.loading = 'lazy';
 
                     const container = document.createElement('div');
                     container.style.cssText = 'position:relative;display:inline-block;width:100%;height:100%;';
@@ -1436,7 +1519,16 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
             document.getElementById('postModal').style.display = 'block';
             document.body.style.overflow = 'hidden';
         }
-
+        function getThumbPath(origPath) {
+            if (!origPath) return origPath;
+            const basename = origPath.split('/').pop();
+            if (basename.startsWith('orig_')) {
+                const uid = basename.replace(/^orig_/, '').replace(/\.[^.]+$/, '');
+                const dir = origPath.substring(0, origPath.lastIndexOf('/'));
+                return dir + '/thumb_' + uid + '.webp';
+            }
+            return origPath;
+        }
         function closePostModal() {
             document.getElementById('postModal').style.display = 'none';
             document.body.style.overflow = 'auto';
@@ -1444,9 +1536,15 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
 
         function openImagePreview(index) {
             currentImageIndex = index;
-            document.getElementById('previewImage').src = '/' + currentImages[index];
+            const origPath = currentImages[index];
+            // 大图预览：仍用压缩图（已足够清晰），原图保留给下载
+            document.getElementById('previewImage').src = '/' + getThumbPath(origPath);
+            document.getElementById('previewImage').dataset.orig = origPath;
             document.getElementById('imagePreview').style.display = 'block';
             document.getElementById('imageCounter').textContent = `${index + 1} / ${currentImages.length}`;
+            // 更新下载按钮
+            const dlBtn = document.getElementById('downloadOrigBtn');
+            if (dlBtn) dlBtn.href = '/download_image/' + origPath;
             updateNavButtons();
         }
 
@@ -1457,8 +1555,12 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
         function prevImage() {
             if (currentImageIndex > 0) {
                 currentImageIndex--;
-                document.getElementById('previewImage').src = '/' + currentImages[currentImageIndex];
+                const origPath = currentImages[currentImageIndex];
+                document.getElementById('previewImage').src = '/' + getThumbPath(origPath);
+                document.getElementById('previewImage').dataset.orig = origPath;
                 document.getElementById('imageCounter').textContent = `${currentImageIndex + 1} / ${currentImages.length}`;
+                const dlBtn = document.getElementById('downloadOrigBtn');
+                if (dlBtn) dlBtn.href = '/download_image/' + origPath;
                 updateNavButtons();
             }
         }
@@ -1466,8 +1568,12 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
         function nextImage() {
             if (currentImageIndex < currentImages.length - 1) {
                 currentImageIndex++;
-                document.getElementById('previewImage').src = '/' + currentImages[currentImageIndex];
+                const origPath = currentImages[currentImageIndex];
+                document.getElementById('previewImage').src = '/' + getThumbPath(origPath);
+                document.getElementById('previewImage').dataset.orig = origPath;
                 document.getElementById('imageCounter').textContent = `${currentImageIndex + 1} / ${currentImages.length}`;
+                const dlBtn = document.getElementById('downloadOrigBtn');
+                if (dlBtn) dlBtn.href = '/download_image/' + origPath;
                 updateNavButtons();
             }
         }
@@ -1529,73 +1635,6 @@ body.loaded .profile-card::before, body.loaded .post-card::before {
             document.getElementById('commentForm').reset();
         }
 
-// 修改 commentForm 提交处理函数
-document.getElementById('commentForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const postId = parseInt(formData.get('post_id'));
-    if (!postId || isNaN(postId)) { showMessage('文章信息错误', 'error'); return; }
-
-    const commentId = formData.get('comment_id');
-    const url = commentId ? `/edit_comment/${commentId}` : '/add_comment';
-    const isEdit = !!commentId;
-
-    let voicePath = null;
-    let voiceDuration = null;
-    let textContent = formData.get('content').trim();
-
-    // 有录音则先上传语音
-    if (recordedBlob) {
-        const vForm = new FormData();
-        vForm.append('voice', recordedBlob, 'voice.wav');
-        vForm.append('duration', recordedDuration);
-        try {
-            const res = await fetch('/upload_voice', { method: 'POST', body: vForm });
-            const vData = await res.json();
-            if (!vData.success) { 
-                showMessage('语音上传失败: ' + vData.message, 'error'); 
-                clearRecordingResources();
-                return; 
-            }
-            voicePath = vData.voice_path;
-            voiceDuration = vData.duration;
-            if (!textContent) textContent = '[语音评论]';
-        } catch(err) {
-            showMessage('语音上传失败，请重试', 'error');
-            clearRecordingResources();
-            return;
-        }
-    } else {
-        if (!textContent) { showMessage('评论内容不能为空', 'warning'); return; }
-    }
-
-    const data = { post_id: postId, content: textContent, voice_path: voicePath, voice_duration: voiceDuration };
-
-    fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            // 成功发送后，释放录音资源
-            clearRecordingResources();
-            clearVoiceRecording();
-            
-            closeCommentModal();
-            loadComments(currentPostId);
-            showMessage(isEdit ? '评论编辑成功！' : '评论添加成功！', 'success');
-        } else {
-            showMessage(data.message || '操作失败', 'error');
-            clearRecordingResources();
-        }
-    })
-    .catch(() => {
-        showMessage('提交失败，请重试', 'error');
-        clearRecordingResources();
-    });
-});
 
         function loadComments(postId) {
             if (!postId || isNaN(postId)) return;
@@ -1724,12 +1763,17 @@ document.getElementById('commentForm').addEventListener('submit', async function
                 try {
                     const res = await fetch('/upload_voice', { method: 'POST', body: vForm });
                     const vData = await res.json();
-                    if (!vData.success) { showMessage('语音上传失败: ' + vData.message, 'error'); return; }
+                    if (!vData.success) { 
+                        showMessage('语音上传失败: ' + vData.message, 'error'); 
+                        clearRecordingResources();
+                        return; 
+                    }
                     voicePath = vData.voice_path;
                     voiceDuration = vData.duration;
                     if (!textContent) textContent = '[语音评论]';
                 } catch(err) {
                     showMessage('语音上传失败，请重试', 'error');
+                    clearRecordingResources();
                     return;
                 }
             } else {
@@ -1746,15 +1790,24 @@ document.getElementById('commentForm').addEventListener('submit', async function
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
+                    // 成功发送后，释放录音资源
+                    clearRecordingResources();
+                    clearVoiceRecording();
+                    
                     closeCommentModal();
                     loadComments(currentPostId);
                     showMessage(isEdit ? '评论编辑成功！' : '评论添加成功！', 'success');
                 } else {
                     showMessage(data.message || '操作失败', 'error');
+                    clearRecordingResources();
                 }
             })
-            .catch(() => showMessage('提交失败，请重试', 'error'));
+            .catch(() => {
+                showMessage('提交失败，请重试', 'error');
+                clearRecordingResources();
+            });
         });
+
 
         function showMessage(message, type = 'success') {
             const toast = document.getElementById('messageToast');
@@ -1770,6 +1823,10 @@ document.getElementById('commentForm').addEventListener('submit', async function
                 const postData = JSON.parse(element.dataset.post);
                 if (!postData || !postData.id) throw new Error('文章数据无效');
                 currentPostId = parseInt(postData.id);
+                
+                // 生成缩略图路径列表
+                const thumbPaths = (postData.images || []).map(imgPath => getThumbPath(imgPath));
+                
                 openPostModal(
                     postData.id,
                     postData.title,
@@ -1778,7 +1835,8 @@ document.getElementById('commentForm').addEventListener('submit', async function
                     postData.tags,
                     postData.date,
                     postData.author,
-                    postData.author_id
+                    postData.author_id,
+                    thumbPaths  // 传递缩略图路径
                 );
                 loadComments(currentPostId);
             } catch (e) {

@@ -1,7 +1,7 @@
 import os
 import uuid
 import json
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify, session, make_response
 from config import Config
 from datetime import datetime, timedelta
 from database import db, app
@@ -10,6 +10,8 @@ from sqlalchemy import cast, Date
 from functools import wraps
 import time
 import requests as http_requests
+from PIL import Image, ImageOps
+import io
 
 # 确保上传目录存在
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -17,7 +19,41 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 COZE_API_TOKEN = "pat_QpFYH4qtFkBBWT6Rbo8qU5ImMEkhgUM6Ot5CeU5VoNFsltAkNzj6193GzOg1FK1U"          
 COZE_BOT_ID    = "7443766574072807458"  
 COZE_API_BASE  = "https://api.coze.cn"
+NEW_DOMAINS = ['oceanyublog.top', 'www.oceanyublog.top']  # 新域名列表
+OLD_DOMAINS = ['loiioblog.top', 'www.loiioblog.top']      # 旧域名列表
 
+@app.before_request
+def check_domain():
+    """检查域名，如果是旧域名则显示跳转提示"""
+    # 获取当前请求的域名（去掉端口号）
+    host = request.host.split(':')[0]
+    
+    # 如果是新域名，直接放行
+    if host in NEW_DOMAINS:
+        return
+    
+    # 如果是 localhost 或 127.0.0.1，放行（方便本地调试）
+    if host in ['localhost', '127.0.0.1']:
+        return
+    
+    # 如果是旧域名，显示跳转提示页面
+    # 排除静态文件请求（避免样式丢失）
+    if host in OLD_DOMAINS and not request.path.startswith('/static/'):
+        # 创建一个响应，设置 Cache-Control 为 no-cache，避免浏览器缓存
+        response = make_response(render_template('domain_redirect.html'))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+    
+    # 对于其他未知域名，也显示跳转提示（可选）
+    if not request.path.startswith('/static/'):
+        response = make_response(render_template('domain_redirect.html'))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
+    
+    # 对于静态文件请求，正常处理
+    return
 # ========== 辅助函数 ==========
 def coze_chat(user_message: str, conversation_id: str = None):
     """
@@ -143,6 +179,67 @@ def allowed_file(filename):
         filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 
+def save_image_with_thumbnail(file_storage, upload_folder):
+    """
+    保存原图并生成压缩版缩略图。
+    
+    返回:
+        orig_path  (str): 原图相对路径，如 'uploads/orig_<uuid>.jpg'
+        thumb_path (str): 缩略图相对路径，如 'uploads/thumb_<uuid>.webp'
+    """
+    uid = uuid.uuid4().hex
+    ext = file_storage.filename.rsplit('.', 1)[1].lower() if '.' in file_storage.filename else 'jpg'
+
+    # ---- 原图 ----
+    orig_filename = f"orig_{uid}.{ext}"
+    orig_save_path = os.path.join(upload_folder, orig_filename)
+    file_storage.save(orig_save_path)
+    orig_path = f"uploads/{orig_filename}"
+
+    # ---- 压缩图（WebP） ----
+    try:
+        with Image.open(orig_save_path) as img:
+            # 使用 Pillow 的 exif_transpose 方法自动修正方向
+            # 这个方法会根据 EXIF 信息自动旋转图片
+            img = ImageOps.exif_transpose(img)
+            
+            # 如果没有 EXIF 信息，exif_transpose 会返回原图
+
+            # 转换 RGBA/P 为 RGB（WebP 支持 RGBA，但为兼容性统一转 RGB）
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGBA')  # 保留透明通道
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            # 限制最大宽度/高度为 1200px，保持比例
+            max_size = (1200, 1200)
+            img.thumbnail(max_size, Image.LANCZOS)
+
+            thumb_filename = f"thumb_{uid}.webp"
+            thumb_save_path = os.path.join(upload_folder, thumb_filename)
+            img.save(thumb_save_path, 'WEBP', quality=82, method=4)
+            thumb_path = f"uploads/{thumb_filename}"
+    except Exception as e:
+        print(f"[图片压缩] 生成缩略图失败，将使用原图: {e}")
+        thumb_path = orig_path  # fallback：使用原图
+
+    return orig_path, thumb_path
+
+
+def get_thumb_path(orig_path):
+    """
+    根据原图路径推算缩略图路径。
+    兼容旧数据（旧路径没有 orig_ 前缀，则直接返回原路径）。
+    """
+    if not orig_path:
+        return orig_path
+    basename = os.path.basename(orig_path)
+    if basename.startswith('orig_'):
+        thumb_basename = 'thumb_' + basename.rsplit('.', 1)[0][5:] + '.webp'
+        return os.path.join(os.path.dirname(orig_path), thumb_basename)
+    return orig_path  # 旧数据直接返回原路径
+
+
 def get_current_user():
     """从 session 中获取当前登录用户"""
     user_id = session.get('user_id')
@@ -191,6 +288,7 @@ def inject_user():
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 
 # ========== chat路由 ==========
 @app.route('/chat_api', methods=['POST'])
@@ -450,12 +548,9 @@ def add_post():
 
         for file in files:
             if file and file.filename and allowed_file(file.filename):
-                ext = file.filename.rsplit('.', 1)[1].lower()
-                filename = f"{uuid.uuid4().hex}.{ext}"
-                save_path = os.path.join(upload_folder, filename)
-                file.save(save_path)
-                # 存储相对路径
-                image_paths.append(f"uploads/{filename}")
+                orig_path, _thumb_path = save_image_with_thumbnail(file, upload_folder)
+                # 只存原图路径；缩略图路径由 get_thumb_path() 实时推算
+                image_paths.append(orig_path)
 
         image_paths_json = json.dumps(image_paths) if image_paths else None
 
@@ -553,28 +648,27 @@ def edit_post(post_id):
         if post.image_path:
             try:
                 old_image_paths = json.loads(post.image_path)
-                for i, image_path in enumerate(old_image_paths):
+                for i, entry in enumerate(old_image_paths):
                     if str(i) not in keep_images:
-                        delete_file(image_path)  # 使用辅助函数删除
+                        # 兼容旧格式（纯字符串）和新格式（带 orig_ 前缀）
+                        orig_path = entry if isinstance(entry, str) else entry.get('orig', '')
+                        delete_file(orig_path)
+                        # 同时删除对应缩略图
+                        thumb_path = get_thumb_path(orig_path)
+                        if thumb_path != orig_path:
+                            delete_file(thumb_path)
             except (json.JSONDecodeError, Exception) as e:
                 print(f"删除旧图片文件时出错: {e}")
 
         # 上传新图片
         new_image_paths = []
         if files and files[0].filename:
+            upload_folder = os.path.join(app.root_path, 'static', 'uploads')
+            os.makedirs(upload_folder, exist_ok=True)
             for file in files:
                 if file and file.filename and allowed_file(file.filename):
-                    ext = file.filename.rsplit('.', 1)[1].lower()
-                    filename = f"{uuid.uuid4().hex}.{ext}"
-                    
-                    # 保存文件到 static/uploads 目录
-                    upload_folder = os.path.join(app.root_path, 'static', 'uploads')
-                    os.makedirs(upload_folder, exist_ok=True)
-                    save_path = os.path.join(upload_folder, filename)
-                    file.save(save_path)
-                    
-                    # 存储相对路径
-                    new_image_paths.append(f"uploads/{filename}")
+                    orig_path, _thumb_path = save_image_with_thumbnail(file, upload_folder)
+                    new_image_paths.append(orig_path)
 
         all_image_paths = kept_image_paths + new_image_paths
         post.image_path = json.dumps(all_image_paths) if all_image_paths else None
@@ -602,12 +696,16 @@ def delete_post(post_id):
         if not can_edit_post(post, current_user):
             return jsonify({'success': False, 'message': '你没有权限删除这篇文章'})
 
-        # 删除博客关联的图片文件
+        # 删除博客关联的图片文件（原图 + 缩略图）
         if post.image_path:
             try:
                 image_paths = json.loads(post.image_path)
-                for image_path in image_paths:
-                    delete_file(image_path)  # 使用辅助函数删除
+                for entry in image_paths:
+                    orig_path = entry if isinstance(entry, str) else entry.get('orig', '')
+                    delete_file(orig_path)
+                    thumb_path = get_thumb_path(orig_path)
+                    if thumb_path != orig_path:
+                        delete_file(thumb_path)
             except (json.JSONDecodeError, Exception) as e:
                 print(f"删除图片文件时出错: {e}")
 
@@ -797,6 +895,36 @@ def delete_comment(comment_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'删除评论失败: {str(e)}'})
+
+
+# ========== 图片下载路由（强制下载原图）==========
+
+@app.route('/download_image/<path:image_path>')
+def download_image(image_path):
+    """
+    强制下载原图。
+    URL 示例: /download_image/uploads/orig_abc123.jpg
+    """
+    # 安全校验：只允许 uploads/ 目录下的文件
+    if not image_path.startswith('uploads/'):
+        return '非法路径', 403
+
+    full_path = os.path.join(app.root_path, 'static', image_path)
+    if not os.path.exists(full_path):
+        return '文件不存在', 404
+
+    directory = os.path.dirname(full_path)
+    filename = os.path.basename(full_path)
+    return send_from_directory(directory, filename, as_attachment=True)
+
+
+# ========== Jinja2 模板过滤器 ==========
+
+@app.template_filter('thumb_path')
+def thumb_path_filter(orig_path):
+    """模板中使用: {{ image_path | thumb_path }}，返回缩略图路径"""
+    return get_thumb_path(orig_path)
+
 
 if __name__ == '__main__':
     with app.app_context():

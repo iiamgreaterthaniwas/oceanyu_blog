@@ -443,6 +443,7 @@
         right: 20px;
     }
 }
+
 .chat-fab.chat-fab--hidden {
     opacity: 0 !important;
     pointer-events: none !important;

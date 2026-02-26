@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>博客域名变更通知 - OceanYu Blog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .icp-link {
+            display: inline-block;
+            margin-top: 8px;
+            color: #999;
+            text-decoration: none;
+            font-size: 12px;
+            border-bottom: 1px dotted #FDC2CC;
+            transition: color 0.3s ease;
+        }
+
+        .icp-link:hover {
+            color: #FDC2CC;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #FDC2CC 0%, #FFF1F3 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 泡泡背景效果 - 从你的博客复制的样式 */
+        .bubbles {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: rise 10s infinite ease-in;
+            box-shadow: 0 0 20px rgba(253, 194, 204, 0.3);
+        }
+
+        .bubble:nth-child(1) { left: 10%; width: 80px; height: 80px; animation-duration: 8s; }
+        .bubble:nth-child(2) { left: 20%; width: 40px; height: 40px; animation-duration: 6s; animation-delay: 1s; }
+        .bubble:nth-child(3) { left: 35%; width: 120px; height: 120px; animation-duration: 12s; animation-delay: 2s; }
+        .bubble:nth-child(4) { left: 50%; width: 60px; height: 60px; animation-duration: 7s; animation-delay: 0s; }
+        .bubble:nth-child(5) { left: 65%; width: 45px; height: 45px; animation-duration: 9s; animation-delay: 3s; }
+        .bubble:nth-child(6) { left: 75%; width: 90px; height: 90px; animation-duration: 11s; animation-delay: 1.5s; }
+        .bubble:nth-child(7) { left: 85%; width: 30px; height: 30px; animation-duration: 5s; animation-delay: 2.5s; }
+        .bubble:nth-child(8) { left: 95%; width: 70px; height: 70px; animation-duration: 10s; animation-delay: 0.5s; }
+        .bubble:nth-child(9) { left: 15%; width: 55px; height: 55px; animation-duration: 8.5s; animation-delay: 4s; }
+        .bubble:nth-child(10) { left: 45%; width: 100px; height: 100px; animation-duration: 13s; animation-delay: 2.8s; }
+
+        @keyframes rise {
+            0% { bottom: -100px; transform: translateX(0); }
+            50% { transform: translate(100px, -500px); }
+            100% { bottom: 1080px; transform: translateX(-200px); }
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 40px rgba(253, 194, 204, 0.3);
+            text-align: center;
+            animation: cardFadeIn 0.8s ease forwards;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes cardFadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .icon {
+            font-size: 70px;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #FDC2CC 0%, #FF9AAC 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .domain-box {
+            background: linear-gradient(135deg, #FDC2CC 0%, #FFB6C1 100%);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 50px;
+            font-size: 28px;
+            font-weight: 600;
+            margin: 25px 0;
+            word-break: break-all;
+            box-shadow: 0 10px 20px rgba(253, 194, 204, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            letter-spacing: 1px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .message {
+            color: #666;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .warning-box {
+            background: rgba(253, 194, 204, 0.15);
+            border: 1px solid rgba(253, 194, 204, 0.4);
+            color: #856404;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            font-size: 15px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .warning-box::before {
+            content: "✨";
+            font-size: 20px;
+        }
+
+        .countdown {
+            font-size: 20px;
+            color: #666;
+            font-weight: 500;
+            margin-bottom: 30px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 40px;
+            display: inline-block;
+            padding: 10px 30px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .countdown span {
+            font-size: 36px;
+            color: #FDC2CC;
+            display: inline-block;
+            min-width: 70px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(253, 194, 204, 0.3);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 14px 35px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-block;
+            border: none;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FDC2CC 0%, #FFB6C1 100%);
+            color: #333;
+            box-shadow: 0 5px 15px rgba(253, 194, 204, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(253, 194, 204, 0.6);
+            background: linear-gradient(135deg, #FFB6C1 0%, #FDC2CC 100%);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.25);
+            color: #666;
+            border: 1px solid rgba(253, 194, 204, 0.5);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-3px);
+            border-color: #FDC2CC;
+        }
+
+        .footer {
+            margin-top: 40px;
+            color: #999;
+            font-size: 14px;
+            border-top: 1px solid rgba(253, 194, 204, 0.3);
+            padding-top: 20px;
+        }
+
+        .stay-message {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid #FDC2CC;
+            color: #666;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-size: 15px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            animation: slideUp 0.5s ease;
+        }
+
+        .stay-message strong {
+            color: #FDC2CC;
+            font-size: 18px;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .heart {
+            color: #FDC2CC;
+            display: inline-block;
+            animation: heartbeat 1.5s ease infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 26px;
+            }
+            
+            .domain-box {
+                font-size: 22px;
+                padding: 15px 20px;
+            }
+            
+            .btn {
+                padding: 12px 25px;
+                font-size: 14px;
+                width: 100%;
+            }
+            
+            .countdown {
+                font-size: 18px;
+                padding: 8px 20px;
+            }
+            
+            .countdown span {
+                font-size: 30px;
+                min-width: 60px;
+            }
+            
+            .message {
+                font-size: 16px;
+            }
+        }
+
+        /* 添加一些装饰性元素 */
+        .sparkle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: white;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .sparkle:nth-child(1) { top: 10%; left: 10%; animation: sparkle 3s infinite; }
+        .sparkle:nth-child(2) { top: 20%; right: 15%; animation: sparkle 4s infinite 1s; }
+        .sparkle:nth-child(3) { bottom: 15%; left: 20%; animation: sparkle 3.5s infinite 0.5s; }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.5); background: #FDC2CC; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 泡泡背景效果 - 完全复制你的博客样式 -->
+    <div class="bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+
+    <!-- 装饰性闪烁点 -->
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+
+    <div class="container">
+        <div class="icon">🍧</div>
+        <h1>✨ 博客搬家啦 ✨</h1>
+        
+        <div class="warning-box">
+            您正在访问的是旧域名，我们已迁移到全新域名
+        </div>
+        
+        <div class="message">
+            为了给您带来更好的体验，请访问我们的新域名：
+        </div>
+        
+        <div class="domain-box">
+            www.oceanyublog.top
+        </div>
+        
+        <div class="countdown">
+            <span id="countdown">10</span> 秒后自动跳转...
+        </div>
+        
+        <div class="buttons">
+            <a href="https://www.oceanyublog.top" class="btn btn-primary" id="manualJumpBtn">
+                🚀 立即前往新域名
+            </a>
+            <button onclick="stayHere()" class="btn btn-secondary">
+                💭 留在此页
+            </button>
+        </div>
+        
+        <div class="footer">
+            © 2026 OceanYu. 版权所有 | OceanYu的CRAZYBLOG<br>
+            <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" class="icp-link">冀ICP备2025117480号-1</a>
+        </div>
+    </div>
+
+    <script>
+        // 倒计时秒数 - 改为10秒
+        let countdown = 10;
+        const countdownElement = document.getElementById('countdown');
+        const newDomain = 'https://www.oceanyublog.top';
+        
+        // 倒计时
+        const timer = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(timer);
+                window.location.href = newDomain;
+            }
+        }, 1000);
+        
+        // 手动跳转
+        document.getElementById('manualJumpBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            clearInterval(timer);
+            window.location.href = newDomain;
+        });
+        
+        // 留在当前页面
+        function stayHere() {
+            clearInterval(timer);
+            countdownElement.parentElement.style.display = 'none';
+            
+            // 移除可能已存在的消息
+            const oldMessage = document.querySelector('.stay-message');
+            if (oldMessage) oldMessage.remove();
+            
+            // 创建一个新的提示消息
+            const message = document.createElement('div');
+            message.className = 'stay-message';
+            message.innerHTML = '🌸 您选择了留在旧域名<br>但请注意旧域名可能随时停止服务<br>建议您收藏新域名：<br><strong>www.oceanyublog.top</strong>';
+            
+            document.querySelector('.buttons').after(message);
+            
+            // 修改按钮状态
+            const stayBtn = document.querySelector('.btn-secondary');
+            if (stayBtn) {
+                stayBtn.disabled = true;
+                stayBtn.style.opacity = '0.5';
+                stayBtn.style.cursor = 'not-allowed';
+            }
+        }
+        
+        // 禁止 iframe 嵌套
+        if (window.top !== window.self) {
+            window.top.location = window.self.location;
+        }
+        
+        // 添加页面进入动画
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('loaded');
+        });
+    </script>
+</body>
+</html>

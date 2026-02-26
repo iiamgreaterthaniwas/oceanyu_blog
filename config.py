@@ -3,7 +3,7 @@ from datetime import timedelta
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key-here-change-in-production'
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:123456@localhost/oceanyu_blog'
+    SQLALCHEMY_DATABASE_URI = 'mysql://root:Universec0602.@localhost/oceanyu_blog'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = 'static/uploads'
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
