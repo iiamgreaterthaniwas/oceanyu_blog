@@ -1,8 +1,7 @@
 import os
 import uuid
 import json
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify, session, \
-    make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify, session, make_response, g
 from config import Config
 from datetime import datetime, timedelta
 from database import db, app
@@ -247,12 +246,11 @@ def get_thumb_path(orig_path):
 
 
 def get_current_user():
-    """从 session 中获取当前登录用户"""
-    user_id = session.get('user_id')
-    if user_id:
-        return User.query.get(user_id)
-    return None
-
+    """从 session 中获取当前登录用户，同一请求内只查询一次数据库"""
+    if '_current_user' not in g:
+        user_id = session.get('user_id')
+        g._current_user = User.query.get(user_id) if user_id else None
+    return g._current_user
 
 def login_required(f):
     """登录验证装饰器"""
@@ -288,7 +286,7 @@ def can_edit_comment(comment, current_user):
 @app.context_processor
 def inject_user():
     """向所有模板注入当前用户和全局未读消息总数"""
-    current_user = get_current_user()
+    current_user = get_current_user()  # 此时已从 g 缓存读取，不再重复查库
     unread_total = 0
     if current_user:
         unread_total = Message.query.filter(
@@ -297,7 +295,6 @@ def inject_user():
             Message.is_deleted_by_receiver == False
         ).count()
     return dict(current_user=current_user, unread_total=unread_total)
-
 
 # ========== 静态文件路由 ==========
 

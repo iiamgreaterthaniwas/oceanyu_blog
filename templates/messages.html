@@ -92,6 +92,95 @@
         padding-top: 0;
     }
 }
+@media (max-width: 768px) {
+  /* 原有的其他样式保持不变 */
+  
+  /* 新增：聊天框容器缩小 */
+  .chat-container {
+    max-width: 95%;
+    margin: 0 auto;
+    padding: 10px;
+  }
+  
+  /* 新增：消息气泡缩小 */
+  .message-bubble {
+    max-width: 85%;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+  }
+  
+  /* 新增：输入区域缩小 */
+  .chat-input-area {
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .chat-input-area input {
+    font-size: 0.85rem;
+    padding: 10px 12px;
+  }
+  
+  .chat-input-area button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 原有的其他样式保持不变 */
+  
+  /* 新增：更小屏幕进一步缩小 */
+  .message-bubble {
+    max-width: 90%;
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+  
+  .chat-input-area input {
+    font-size: 0.8rem;
+    padding: 8px 10px;
+  }
+  
+  .chat-input-area button {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  
+  /* 新增：消息时间戳缩小 */
+  .message-time {
+    font-size: 0.65rem;
+  }
+}
+@media (max-width: 768px) {
+  /* 原有的其他样式保持不变 */
+  
+  /* 新增：聊天框整体高度缩小 */
+  .chat-messages {
+    max-height: 70vh !important;  /* 强制设置最大高度为视窗高度的50% */
+    min-height: 500x;  /* 设置最小高度保证可用性 */
+  }
+}
+
+@media (max-width: 480px) {
+  /* 原有的其他样式保持不变 */
+  
+  /* 新增：更小屏幕进一步缩小高度 */
+  .chat-messages {
+    max-height: 45vh !important;  /* 缩小到视窗高度的45% */
+    min-height: 250px;  /* 适当减小最小高度 */
+  }
+  
+  /* 可选：让整个聊天框容器也更紧凑 */
+  .chat-container {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  
+  /* 可选：减少消息之间的间距 */
+  .message-item {
+    margin: 6px 0;
+  }
+}
 /* 会话项 */
 .conv-item {
   display: flex;
